@@ -1,0 +1,22 @@
+title: "Estagio Software Developer - Web/Backend"
+company: "Lisbon Product Studio"
+location: "Lisboa, Portugal"
+work_mode: "hybrid"
+link: "https://example.com/jobs/good-internship"
+seniority: "internship"
+description: "Paid internship for a TGPSI or junior candidate to work on real web and backend tasks with mentorship from senior developers. The role includes JavaScript, React, Node.js, SQL, code reviews, training and a possible contract after the internship."
+responsibilities:
+  - Build small web features with JavaScript and React.
+  - Support backend endpoints with Node.js and SQL.
+  - Learn through code reviews and mentorship.
+stack_required:
+  - JavaScript
+  - React
+  - Node.js
+  - SQL
+mentorship: true
+progression: true
+contract_possible: true
+compensation: "paid internship / bolsa"
+company_presence: "credible"
+expected_recommendation: "apply"

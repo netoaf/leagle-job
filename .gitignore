@@ -1,0 +1,60 @@
+# Personal data and local work products (user fills/generates these)
+/cv.md
+/cv-*.md
+/article-digest.md
+data/*
+!data/.gitkeep
+reports/*
+!reports/.gitkeep
+output/*
+!output/.gitkeep
+batch/logs/*
+!batch/logs/.gitkeep
+batch/batch-state.tsv
+batch/batch-input.tsv
+batch/tracker-additions/**
+!batch/tracker-additions/.gitkeep
+jds/*
+!jds/.gitkeep
+interview-prep/*
+!interview-prep/.gitkeep
+
+# User config and customization (never auto-updated)
+config/profile.yml
+config/profile-*.yml
+config/candidate-context.yml
+config/scoring.yml
+config/jobfinder-rules.yml
+config/email.yml
+/portals.yml
+modes/_profile.md
+.update-dismissed
+.update-lock
+
+# Generated
+.resolved-prompt-*
+node_modules/
+.gocache/
+dist/
+dashboard/*.exe
+
+# OS
+.DS_Store
+*.mov
+*.mp4
+
+# Claude Code local
+.claude/settings.local.json
+.claude/memory/
+career-dashboard
+
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+*.p12
+*.key
+**/credentials.*
+**/secrets.*

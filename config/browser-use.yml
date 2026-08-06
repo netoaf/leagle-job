@@ -1,0 +1,50 @@
+enabled: false
+
+# Never store BROWSER_USE_API_KEY in this file.
+# Set it only in your local shell/session:
+#   PowerShell: $env:BROWSER_USE_API_KEY="bu_..."
+
+api:
+  base_url: "https://api.browser-use.com/api/v3"
+  model: "bu-mini"
+  max_cost_usd: 0.75
+  proxy_country_code: "pt"
+  timeout_ms: 300000
+  poll_interval_ms: 5000
+
+search_defaults:
+  language_priority:
+    - "pt-PT"
+    - "en"
+  target_location: "Portugal, Lisboa, remote Portugal"
+  max_jobs: 20
+  sources:
+    - "ITJobs.pt"
+    - "Landing.jobs"
+    - "LinkedIn Portugal"
+    - "Indeed Portugal"
+    - "Net-Empregos"
+    - "Sapo Emprego"
+    - "Wellfound"
+    - "company career pages"
+  must_include:
+    - "junior"
+    - "internship"
+    - "estagio"
+    - "trainee"
+    - "graduate"
+  avoid:
+    - "senior"
+    - "sales"
+    - "marketing"
+    - "unpaid"
+    - "bootcamp"
+
+integration:
+  output_dir: "output/browser-use"
+  default_min_score: 60
+  default_write_limit: 5
+  require_human_review: true
+  allow_dashboard_write: true
+  allow_auto_apply: false
+  allow_email_send: false

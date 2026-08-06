@@ -1,0 +1,59 @@
+# Starter defaults for the current early-career scoring engine.
+# Copy to scoring.yml and adjust locally; scoring.yml is never committed.
+scale:
+  min: 0
+  max: 100
+
+weights:
+  target_role_fit: 20
+  technical_stack: 20
+  mentorship_learning: 20
+  progression: 15
+  location_remote: 10
+  compensation: 10
+  clarity_credibility: 5
+
+recommendation_thresholds:
+  apply_min: 75
+  maybe_min: 50
+  discard_below: 50
+
+hard_blockers:
+  - non_technical_role
+  - scam_or_mlm
+  - sales_disguised_as_it
+  - senior_required
+  - private_data_required
+  - unpaid_without_strong_mentorship
+  - presencial_too_far
+  - fake_junior_role
+  - vague_or_suspicious_description
+
+red_flag_penalties:
+  asks_2_plus_years_for_junior: -25
+  no_salary_or_stipend: -10
+  no_mentorship: -15
+  unclear_stack: -10
+  sales_disguised_as_it: -40
+  far_onsite_location: -25
+  vague_description: -15
+  requires_unowned_certification: -10
+  suspicious_company_presence: -30
+  unconfirmed_required_language: -25
+
+output_required_fields:
+  - title
+  - company
+  - location
+  - work_mode
+  - link
+  - score
+  - recommendation
+  - score_breakdown
+  - strengths
+  - red_flags
+  - stack_required
+  - skill_match
+  - cv_adjustments
+  - application_message
+  - interview_questions

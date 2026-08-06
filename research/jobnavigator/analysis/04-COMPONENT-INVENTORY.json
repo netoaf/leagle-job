@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "assessment_date": "2026-07-23",
+  "target": {
+    "repository": "https://github.com/vesaias/JobNavigator",
+    "commit": "387b2c9bd7f1bd627c396c6dddc8d750ce3c4bfb",
+    "license": "MIT",
+    "license_sha256": "BFE3C2F18948E74EE54A9A229D67A1E300B8B457A3BEB64C910472B8A87B8480"
+  },
+  "source_metrics": {
+    "tracked_files": 227,
+    "checkout_bytes_excluding_git": 12198045,
+    "backend_production_python": {
+      "files": 64,
+      "lines": 14375
+    },
+    "backend_test_python": {
+      "files": 89,
+      "lines": 6407
+    },
+    "frontend_source": {
+      "files": 16,
+      "lines": 7826
+    },
+    "browser_extension_text_source": {
+      "files": 5,
+      "lines": 830
+    }
+  },
+  "services": [
+    {
+      "name": "database",
+      "technology": "PostgreSQL",
+      "container": "postgres:16-alpine"
+    },
+    {
+      "name": "backend",
+      "technology": "Python 3.12, FastAPI, SQLAlchemy, Uvicorn"
+    },
+    {
+      "name": "frontend",
+      "technology": "React 18, Vite 6, nginx"
+    },
+    {
+      "name": "reverse_proxy",
+      "technology": "Caddy",
+      "container": "caddy:2-alpine"
+    },
+    {
+      "name": "browser_extension",
+      "technology": "Chrome Manifest V3"
+    }
+  ],
+  "manifests": [
+    {
+      "path": "backend/requirements.txt",
+      "ecosystem": "PyPI",
+      "direct_entries": 23,
+      "lock_or_hashes": false
+    },
+    {
+      "path": "frontend/package.json",
+      "ecosystem": "npm",
+      "runtime_entries": 8,
+      "development_entries": 7,
+      "lockfile": false
+    },
+    {
+      "path": "docker-compose.yml",
+      "ecosystem": "OCI/Compose",
+      "services": 4,
+      "images_pinned_by_digest": false
+    }
+  ],
+  "python_direct_requirements": [
+    "fastapi==0.136.3",
+    "uvicorn[standard]==0.34.0",
+    "sqlalchemy==2.0.36",
+    "psycopg2-binary==2.9.10",
+    "python-dotenv==1.2.2",
+    "pdfplumber==0.11.9",
+    "python-multipart==0.0.31",
+    "apscheduler==3.10.4",
+    "httpx==0.28.1",
+    "anthropic==0.42.0",
+    "openai==1.82.0",
+    "python-telegram-bot==21.9",
+    "python-jobspy==1.1.82",
+    "playwright==1.49.1",
+    "beautifulsoup4==4.12.3",
+    "pydantic==2.10.4",
+    "pdfminer.six==20251230",
+    "starlette>=1.0.1",
+    "lxml>=6.1.0",
+    "linkedin-api @ git+https://github.com/vesaias/linkedin-api@988dc61d4b83f1138109cae5e9f82ad995ad2de8",
+    "Jinja2>=3.1.0",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.3.0"
+  ],
+  "npm_runtime_dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.1.1",
+    "@hello-pangea/dnd": "^17.0.0",
+    "axios": "^1.7.9",
+    "lucide-react": "^0.469.0",
+    "recharts": "^2.15.0",
+    "diff": "^8.0.3"
+  },
+  "npm_development_dependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.0.7"
+  },
+  "container_inputs": [
+    "python:3.12-slim",
+    "node:20-alpine",
+    "nginx:alpine",
+    "postgres:16-alpine",
+    "caddy:2-alpine"
+  ],
+  "host_ports": [
+    {
+      "host": "127.0.0.1",
+      "port": 5432,
+      "service": "PostgreSQL"
+    },
+    {
+      "host": "0.0.0.0",
+      "port": 8000,
+      "service": "backend"
+    },
+    {
+      "host": "0.0.0.0",
+      "port": 3000,
+      "service": "frontend"
+    },
+    {
+      "host": "0.0.0.0",
+      "port": 80,
+      "service": "Caddy"
+    },
+    {
+      "host": "0.0.0.0",
+      "port": 443,
+      "service": "Caddy"
+    }
+  ],
+  "volumes": [
+    "pgdata",
+    "./backend:/app/backend",
+    "./backups:/app/backups",
+    "./backend/.linkedin_api:/root/.linkedin_api",
+    "./Caddyfile:/etc/caddy/Caddyfile",
+    "caddy_data",
+    "caddy_config"
+  ],
+  "external_service_classes": [
+    "Anthropic and OpenAI LLM APIs",
+    "local Ollama-compatible endpoint",
+    "Google OAuth and Gmail API",
+    "Telegram Bot API",
+    "LinkedIn authenticated and extension flows",
+    "Jobright and Levels.fyi",
+    "public ATS and company career sites",
+    "MyVisaJobs H-1B lookup"
+  ],
+  "ats_handlers": [
+    "Ashby",
+    "generic browser",
+    "Google Careers",
+    "Greenhouse",
+    "Lever",
+    "Meta Careers",
+    "Oracle HCM",
+    "Phenom",
+    "Rippling",
+    "SmartRecruiters",
+    "TalentBrew",
+    "Workday"
+  ],
+  "inventory_limitations": [
+    "No upstream dependency or application code was executed.",
+    "No package manager or vulnerability scanner was installed.",
+    "No frontend lockfile exists, so the transitive npm graph is not reproducible.",
+    "Python dependencies do not include hashes and three constraints use lower bounds.",
+    "Container image tags are not pinned by digest.",
+    "This is a source/component inventory, not a complete CycloneDX or SPDX SBOM."
+  ],
+  "gate_3_decision": {
+    "inventory": "complete for static intake",
+    "isolated_execution": "no-go",
+    "reason": "Transitive dependencies and build inputs are not reproducibly pinned or fully audited."
+  }
+}

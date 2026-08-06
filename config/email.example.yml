@@ -1,0 +1,34 @@
+enabled: false
+provider: "gmail"
+mode: "draft_only"
+human_review_required: true
+auto_send: false
+allow_real_gmail_drafts: false
+allow_cv_attachment_in_gmail: false
+
+drafts:
+  store: "data/email-drafts.tsv"
+  local_output_dir: "output/email-drafts-local"
+  default_to: "a confirmar"
+  subject_prefix: "Candidatura"
+
+attachments:
+  planned_cv_pdf: "output/CV-Candidate.pdf"
+  require_explicit_attachment_approval: true
+
+sync:
+  read_replies: false
+  update_application_status: false
+  newer_than_days: 30
+
+labels:
+  draft_label: "Leagle Job/Drafts"
+  sent_label: "Leagle Job/Sent"
+  reply_label: "Leagle Job/Replies"
+  needs_review_label: "Leagle Job/Needs Review"
+
+safety:
+  require_draft_quality_gate: true
+  require_recipient_confirmed: true
+  require_application_pack: true
+  never_send_without_approval: true

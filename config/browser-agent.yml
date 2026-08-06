@@ -1,0 +1,93 @@
+browser_agent:
+  enabled: true
+  provider: playwright_local
+  mode: extraction_only
+  output_dir: output/browser-agent
+
+  defaults:
+    headless: true
+    write_outputs: false
+    score_after_extract: false
+
+  scanner:
+    enabled: true
+    use_only_when_adapter_is_browser_agent: true
+    write_outputs_from_scanner: false
+    max_extraction_fallback:
+      enabled: true
+      max_per_scan: 5
+      min_description_chars: 800
+      trigger_on_missing_company: true
+      trigger_on_missing_location_or_mode: true
+      trigger_on_quality_failure: true
+      write_outputs: false
+    recommended_for:
+      - single_job_pages
+      - javascript_rendered_job_pages
+      - sources_where_html_fetch_misses_the_description
+
+  extraction:
+    timeout_ms: 25000
+    wait_until: domcontentloaded
+    max_text_chars: 30000
+    block_resource_types:
+      - image
+      - media
+      - font
+    remove_selectors:
+      - script
+      - style
+      - noscript
+      - svg
+      - header
+      - footer
+      - nav
+      - aside
+      - "[role='banner']"
+      - "[role='navigation']"
+      - "[role='contentinfo']"
+
+  safety:
+    human_review_required: true
+    never_submit: true
+    allow_form_fill: false
+    allow_file_upload: false
+    allow_email_send: false
+    allow_external_api: false
+    allowed_actions:
+      - check
+      - extract
+      - score
+    forbidden_actions:
+      - submit_application
+      - send_email
+      - click_submit
+      - upload_cv
+      - type_sensitive_data
+      - change_application_status
+    blocked_url_patterns:
+      - accounts.google.com
+      - login
+      - signin
+      - sign-in
+      - auth
+      - checkout
+      - payment
+
+  providers:
+    playwright_local:
+      enabled: true
+      requires_api_key: false
+      requires_login: false
+      privacy_risk: low
+      automation_risk: low
+      recommended_action: "Use for extraction and scoring only."
+
+    browseruse_cloud:
+      enabled: false
+      env_key: BROWSER_USE_API_KEY
+      requires_api_key: true
+      requires_login: false
+      privacy_risk: medium
+      automation_risk: high
+      recommended_action: "Keep disabled until a reviewed workflow exists."

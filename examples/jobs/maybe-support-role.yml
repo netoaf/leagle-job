@@ -1,0 +1,20 @@
+title: "IT Support Intern with Automation Tasks"
+company: "Lisbon Operations Tech"
+location: "Lisboa, Portugal"
+work_mode: "hybrid"
+link: "https://example.com/jobs/maybe-support-role"
+seniority: "internship"
+description: "Internship in a technical support team with some automation tasks, SQL checks and Python scripts. The company mentions progression to development if performance is good, but mentorship is not clearly described."
+responsibilities:
+  - Help with technical support tickets.
+  - Write small Python scripts for repeated tasks.
+  - Check simple SQL data issues.
+stack_required:
+  - Python
+  - SQL
+mentorship: false
+progression: true
+contract_possible: false
+compensation: "paid internship / bolsa"
+company_presence: "credible"
+expected_recommendation: "maybe"

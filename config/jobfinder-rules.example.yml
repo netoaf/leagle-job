@@ -1,0 +1,29 @@
+# Neutral safety defaults. Copy to jobfinder-rules.yml and customize locally.
+# Never add private names, links, credentials or unsupported candidate claims.
+critical_rules:
+  - Never invent experience, projects, certificates, metrics, links or clients.
+  - If information is not confirmed, mark it as "a confirmar".
+  - Present seniority only at the level supported by confirmed evidence.
+  - Do not expose private code, private links, API keys, tokens or sensitive data.
+  - Describe private projects generically through controlled demos, screenshots or technical descriptions.
+  - Always require human approval before sending applications or emails.
+  - Use the language configured in the candidate profile or requested by the employer.
+
+privacy:
+  allow:
+    - name
+    - city_country
+    - professional_email_if_provided
+    - phone_if_explicitly_provided
+    - linkedin_if_confirmed
+    - github_if_confirmed
+    - portfolio_if_confirmed
+  deny:
+    - full_address
+    - citizen_card
+    - tax_identifier
+    - private_code
+    - private_links
+    - family_details
+    - financial_personal_details
+    - unconfirmed_claims

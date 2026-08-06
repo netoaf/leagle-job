@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "target_commit": "387b2c9bd7f1bd627c396c6dddc8d750ce3c4bfb",
+  "risks": [
+    {
+      "id": "SEC-001",
+      "severity": "critical",
+      "area": "AI integrity",
+      "decision": "reject",
+      "evidence": ["backend/seed.py"]
+    },
+    {
+      "id": "SEC-002",
+      "severity": "high",
+      "area": "browser extension",
+      "decision": "reject",
+      "evidence": ["extension/background.js", "extension/manifest.json"]
+    },
+    {
+      "id": "SEC-003",
+      "severity": "high",
+      "area": "credential storage",
+      "decision": "exclude from research runtime",
+      "evidence": ["SECURITY.md", "backend/models/db.py", "frontend/src/api.js", "extension/popup.js"]
+    },
+    {
+      "id": "SEC-004",
+      "severity": "high",
+      "area": "authentication and exposure",
+      "decision": "do not run upstream defaults",
+      "evidence": ["backend/config.py", "backend/main.py", "docker-compose.yml", "Caddyfile"]
+    },
+    {
+      "id": "SEC-005",
+      "severity": "high",
+      "area": "software supply chain",
+      "decision": "require pinned research build plan",
+      "evidence": ["Dockerfile.backend", "Dockerfile.frontend", "backend/requirements.txt", ".github/workflows/ci.yml"]
+    },
+    {
+      "id": "SEC-006",
+      "severity": "high",
+      "area": "SSRF",
+      "decision": "reuse concepts only behind JobFinder safety boundary",
+      "evidence": ["backend/scraper/_shared/url_safety.py", "backend/scraper/ats"]
+    },
+    {
+      "id": "SEC-007",
+      "severity": "medium",
+      "area": "provenance",
+      "decision": "commit-specific source review only",
+      "evidence": ["SECURITY.md", ".github/workflows/ci.yml"]
+    },
+    {
+      "id": "SEC-008",
+      "severity": "medium",
+      "area": "privacy tracking",
+      "decision": "reject",
+      "evidence": ["backend/models/db.py", "backend/main.py"]
+    },
+    {
+      "id": "SEC-009",
+      "severity": "medium",
+      "area": "external integrations and ToS",
+      "decision": "exclude",
+      "evidence": ["LEGAL_DISCLAIMER.md", "backend/scraper/sources", "backend/email_monitor", "backend/notifier"]
+    }
+  ]
+}

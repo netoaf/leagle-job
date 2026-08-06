@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "assessment_date": "2026-07-23",
+  "target_commit": "387b2c9bd7f1bd627c396c6dddc8d750ce3c4bfb",
+  "decisions": [
+    {
+      "component": "Oracle HCM adapter",
+      "upstream_paths": ["backend/scraper/ats/oracle_hcm.py", "backend/tests/test_ats_oracle_hcm.py"],
+      "jobfinder_overlap": "No dedicated adapter",
+      "decision": "reimplement",
+      "priority": "high",
+      "conditions": ["central safe-fetch boundary", "HTTPS only", "hostname allowlist", "pagination cap", "synthetic and recorded fixtures", "MIT attribution if expressive code is copied"]
+    },
+    {
+      "component": "Rippling adapter",
+      "upstream_paths": ["backend/scraper/ats/rippling.py", "backend/tests/test_ats_rippling.py"],
+      "jobfinder_overlap": "No dedicated adapter",
+      "decision": "reimplement",
+      "priority": "high",
+      "conditions": ["HTTPS only", "no US-specific location preference", "central safe-fetch boundary", "response-size cap", "synthetic fixtures"]
+    },
+    {
+      "component": "TalentBrew adapter",
+      "upstream_paths": ["backend/scraper/ats/talentbrew.py", "backend/tests/test_ats_talentbrew.py"],
+      "jobfinder_overlap": "No dedicated adapter",
+      "decision": "reimplement",
+      "priority": "medium",
+      "conditions": ["allowlisted origin", "status and content-type checks", "response-size cap", "robust HTML parsing", "pagination tests"]
+    },
+    {
+      "component": "Phenom adapter",
+      "upstream_paths": ["backend/scraper/ats/phenom.py", "backend/tests/test_ats_phenom.py"],
+      "jobfinder_overlap": "No dedicated adapter",
+      "decision": "evaluate-later",
+      "priority": "medium",
+      "conditions": ["replace arbitrary POST|URL|JSON input with typed declarative configuration", "endpoint allowlist", "payload schema", "pagination cap", "safe-fetch coverage"]
+    },
+    {
+      "component": "Eightfold adapter",
+      "upstream_paths": ["backend/scraper/ats/generic.py", "backend/scraper/ats/_descriptions.py"],
+      "jobfinder_overlap": "Controlled browser fallback existed, but it did not identify Eightfold listing cards or use the public same-origin detail API",
+      "decision": "adapted-with-attribution",
+      "priority": "completed",
+      "conditions": ["real public Microsoft source", "central safe-fetch boundary", "same-origin API derivation", "HTTPS only", "five-page hard cap", "synthetic fixtures", "MIT notice"]
+    },
+    {
+      "component": "Greenhouse, Ashby, Lever, Workday and SmartRecruiters adapters",
+      "upstream_paths": ["backend/scraper/ats"],
+      "jobfinder_overlap": "Already implemented in scan-jobs.mjs and source-adapters.mjs",
+      "decision": "reference-tests-only",
+      "priority": "low",
+      "conditions": ["do not replace JobFinder implementations", "use only missing edge cases verified by synthetic regression tests"]
+    },
+    {
+      "component": "Google and Meta employer-specific browser scrapers",
+      "upstream_paths": ["backend/scraper/ats/google.py", "backend/scraper/ats/meta.py"],
+      "jobfinder_overlap": "Existing controlled browser fallback",
+      "decision": "evaluate-later",
+      "priority": "low",
+      "conditions": ["demonstrated source demand", "strict page cap", "no login", "no anti-bot bypass", "safe browser policy"]
+    },
+    {
+      "component": "URL SSRF protection",
+      "upstream_paths": ["backend/scraper/_shared/url_safety.py", "backend/tests/test_url_safety.py"],
+      "jobfinder_overlap": "JobFinder-native safe-fetch and Playwright guard are implemented and documented",
+      "decision": "implemented-jobfinder-native",
+      "priority": "completed",
+      "conditions": ["lib/network/safe-fetch.mjs", "lib/network/playwright-guard.mjs", "17 synthetic security regressions", "all direct HTTP consumers migrated"]
+    },
+    {
+      "component": "Deduplication and URL normalization",
+      "upstream_paths": ["backend/scraper/_shared/dedup.py", "backend/scraper/_shared/urls.py"],
+      "jobfinder_overlap": "JobFinder already has canonical URL, external keys, similarity keys and description hashes",
+      "decision": "keep-jobfinder",
+      "priority": "none",
+      "conditions": ["only add verified missing external-key patterns"]
+    },
+    {
+      "component": "Source orchestration, health and pagination-cap test ideas",
+      "upstream_paths": ["backend/scraper/orchestrator.py", "backend/tests/test_ats_pagination_caps.py"],
+      "jobfinder_overlap": "JobFinder has source detection, health classification, scan history and browser fallback",
+      "decision": "idea-only",
+      "priority": "medium",
+      "conditions": ["extend existing modules instead of adding a parallel orchestrator", "add deterministic tests"]
+    },
+    {
+      "component": "Application board and statistics UI",
+      "upstream_paths": ["frontend/src/components/ApplicationBoard.jsx", "frontend/src/components/Stats.jsx"],
+      "jobfinder_overlap": "Existing terminal dashboard and application tracker",
+      "decision": "idea-only",
+      "priority": "low",
+      "conditions": ["no React runtime solely for visual parity", "preserve current tracker as source of truth"]
+    },
+    {
+      "component": "Database application tracker and scheduler",
+      "upstream_paths": ["backend/models/db.py", "backend/scheduler.py", "backend/job_monitor.py"],
+      "jobfinder_overlap": "Existing local files, scan history and dashboard",
+      "decision": "reject-parallel-source-of-truth",
+      "priority": "none",
+      "conditions": []
+    },
+    {
+      "component": "AI scoring, persona tailoring and resume generation",
+      "upstream_paths": ["backend/analyzer", "backend/seed.py", "backend/api/routes_resumes.py"],
+      "jobfinder_overlap": "Existing evidence-based scoring and review-first CV diff flow",
+      "decision": "reject",
+      "priority": "none",
+      "conditions": ["upstream prompt permits invented facts and metrics"]
+    },
+    {
+      "component": "Chrome extension",
+      "upstream_paths": ["extension"],
+      "jobfinder_overlap": "None required",
+      "decision": "reject",
+      "priority": "none",
+      "conditions": ["global security-header removal and broad host permissions are incompatible with JobFinder"]
+    },
+    {
+      "component": "LinkedIn, Jobright, Gmail and Telegram integrations",
+      "upstream_paths": ["backend/scraper/sources", "backend/email_monitor", "backend/notifier"],
+      "jobfinder_overlap": "JobFinder forbids automatic external actions and treats credentials as private",
+      "decision": "reject",
+      "priority": "none",
+      "conditions": ["legal, privacy, credential and terms-of-service exposure"]
+    },
+    {
+      "component": "Document tracer",
+      "upstream_paths": ["backend/main.py", "backend/models/db.py"],
+      "jobfinder_overlap": "None",
+      "decision": "reject",
+      "priority": "none",
+      "conditions": ["collects click metadata that is outside JobFinder's privacy boundary"]
+    },
+    {
+      "component": "Test organization and synthetic fixtures",
+      "upstream_paths": ["backend/tests"],
+      "jobfinder_overlap": "JobFinder now has deterministic tests for network, adapters, normalization, identity, enrichment, quality and source-health classification",
+      "decision": "implemented-jobfinder-native",
+      "priority": "completed",
+      "conditions": ["synthetic data only", "tests/job-pipeline-foundation.test.mjs", "complete unit suite in health and CI"]
+    }
+  ]
+}

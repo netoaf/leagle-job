@@ -1,0 +1,64 @@
+default_profile: pt
+
+profiles:
+  pt:
+    description: Portugal-first scan for junior/internship opportunities.
+    per_company_quota: 3
+    job_boards:
+      - source: ITJobs.pt
+        quota: 20
+      - source: Landing.jobs
+        quota: 12
+      - source: Remotive
+        quota: 6
+      - source: YC Jobs
+        quota: 6
+      - source: We Work Remotely
+        quota: 4
+    company_groups:
+      - group: portugal_priority
+        quota: 70
+      - group: portugal_general
+        quota: 40
+
+  remote:
+    description: Remote/Europe scan after the Portugal-first pipeline is clean.
+    per_company_quota: 5
+    job_boards:
+      - source: Landing.jobs
+        quota: 10
+      - source: Remotive
+        quota: 12
+      - source: YC Jobs
+        quota: 10
+      - source: We Work Remotely
+        quota: 8
+    company_groups:
+      - group: remote_europe
+        quota: 30
+      - group: global
+        quota: 10
+
+  global:
+    description: Broad scan across all configured sources. Higher noise.
+    per_company_quota: 4
+    job_boards:
+      - source: ITJobs.pt
+        quota: 10
+      - source: Landing.jobs
+        quota: 10
+      - source: Remotive
+        quota: 10
+      - source: YC Jobs
+        quota: 10
+      - source: We Work Remotely
+        quota: 8
+    company_groups:
+      - group: portugal_priority
+        quota: 15
+      - group: portugal_general
+        quota: 10
+      - group: remote_europe
+        quota: 15
+      - group: global
+        quota: 20

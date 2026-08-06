@@ -1,0 +1,20 @@
+{
+  "title": "Junior Software Developer",
+  "company": "Example Engineering",
+  "location": "Lisboa, Portugal",
+  "work_mode": "Hybrid",
+  "link": "https://careers.example/jobs/JR-1001",
+  "description": "Synthetic vacancy fixture for offline adapter tests.",
+  "stack_required": ["JavaScript", "Node.js", "SQL"],
+  "compensation": "a confirmar",
+  "mentorship": "a confirmar",
+  "progression": "a confirmar",
+  "asks_years_experience": 0,
+  "source": "synthetic_fixture",
+  "first_seen": "2026-07-23",
+  "is_active": true,
+  "date_posted": "",
+  "valid_through": "",
+  "employment_type": "Full-time",
+  "apply_url": "https://careers.example/jobs/JR-1001"
+}

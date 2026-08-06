@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "network_policy": "offline synthetic fixtures only",
+  "cases": [
+    {
+      "id": "valid-minimal",
+      "expect": "accept",
+      "reason": "HTTPS job URL and required normalized fields"
+    },
+    {
+      "id": "http-url",
+      "expect": "reject",
+      "reason": "Future imported adapters must prefer and enforce HTTPS"
+    },
+    {
+      "id": "loopback-url",
+      "expect": "reject",
+      "reason": "SSRF loopback target"
+    },
+    {
+      "id": "private-ip-url",
+      "expect": "reject",
+      "reason": "SSRF private-network target"
+    },
+    {
+      "id": "cloud-metadata-url",
+      "expect": "reject",
+      "reason": "SSRF link-local metadata target"
+    },
+    {
+      "id": "redirect-to-private",
+      "expect": "reject",
+      "reason": "Every redirect hop must be revalidated"
+    },
+    {
+      "id": "oversized-response",
+      "expect": "reject",
+      "reason": "Response byte limit"
+    },
+    {
+      "id": "pagination-cap",
+      "expect": "stop",
+      "reason": "Request and page budgets are mandatory"
+    },
+    {
+      "id": "malformed-json",
+      "expect": "reject",
+      "reason": "No partial untrusted object enters scoring"
+    },
+    {
+      "id": "unknown-candidate-fact",
+      "expect": "preserve-unknown",
+      "reason": "Never infer or invent personal evidence"
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jobfinder.local/schemas/normalized-job.schema.json",
+  "title": "JobFinder normalized job candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "company",
+    "location",
+    "work_mode",
+    "link",
+    "description",
+    "stack_required",
+    "source",
+    "first_seen",
+    "is_active"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "company": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "location": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "work_mode": {
+      "type": "string",
+      "enum": ["Remote", "Hybrid", "Onsite", "a confirmar"]
+    },
+    "link": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500000
+    },
+    "stack_required": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "uniqueItems": true
+    },
+    "compensation": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "mentorship": {
+      "oneOf": [
+        {"type": "boolean"},
+        {"const": "a confirmar"}
+      ]
+    },
+    "progression": {
+      "oneOf": [
+        {"type": "boolean"},
+        {"const": "a confirmar"}
+      ]
+    },
+    "asks_years_experience": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 80
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "first_seen": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_active": {
+      "type": "boolean"
+    },
+    "date_posted": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "valid_through": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "employment_type": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "apply_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    }
+  }
+}

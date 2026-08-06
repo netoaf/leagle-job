@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-07-23",
+  "source": {
+    "provider": "GitHub",
+    "repository": "vesaias/JobNavigator",
+    "repository_id": "1211525664",
+    "fetch_url": "https://github.com/vesaias/JobNavigator.git",
+    "default_branch": "main",
+    "visibility": "public",
+    "archived": false
+  },
+  "checkout": {
+    "path": "research/jobnavigator/upstream/JobNavigator",
+    "commit": "387b2c9bd7f1bd627c396c6dddc8d750ce3c4bfb",
+    "commit_date": "2026-07-21T17:33:54+02:00",
+    "subject": "Model updates + Resumes rename",
+    "shallow": true,
+    "commit_count": 1,
+    "tags_fetched": false,
+    "submodules_present": false,
+    "tracked_files": 227,
+    "working_tree_bytes": 12198045
+  },
+  "controls": {
+    "hooks_disabled_during_clone": true,
+    "submodule_recursion_disabled": true,
+    "package_installation_performed": false,
+    "upstream_code_executed": false,
+    "push_url": "DISABLED"
+  },
+  "license": {
+    "declared": "MIT",
+    "file": "LICENSE",
+    "sha256": "BFE3C2F18948E74EE54A9A229D67A1E300B8B457A3BEB64C910472B8A87B8480"
+  }
+}

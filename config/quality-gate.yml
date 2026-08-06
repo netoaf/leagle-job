@@ -1,0 +1,30 @@
+required:
+  - title
+  - company
+  - link
+  - description
+  - location_or_remote
+  - source
+
+minimums:
+  description_chars: 180
+  quality_score_to_rank: 55
+  quality_score_to_dashboard: 65
+
+reject_if:
+  - missing_company
+  - missing_title
+  - missing_link
+  - inactive_or_expired
+  - no_description
+  - scam_or_mlm
+  - non_technical_role
+  - missing_junior_or_mentorship_signal
+  - experience_heavy_without_junior_signal
+
+warn_if:
+  - missing_location
+  - missing_work_mode
+  - missing_compensation
+  - unclear_seniority
+  - possible_senior_role

@@ -1,0 +1,28 @@
+JOBFINDER — INSTRUÇÕES SIMPLES
+===============================
+
+1. Extrai todo o conteúdo do ZIP.
+2. Faz duplo clique em setup.bat.
+3. Abre COMECE-AQUI.md e preenche os quatro ficheiros indicados.
+4. Faz duplo clique em testar-sistema.bat.
+
+Não executes como administrador. Não introduzas palavras-passe, tokens ou chaves
+de API no instalador. Se o Node.js não estiver instalado, o setup oferece a
+instalação da versão LTS através do Windows Package Manager.
+
+AJUDA
+-----
+
+- Guia principal: COMECE-AQUI.md
+- Guia rápido: SETUP-QUICK-START.md
+- Diagnóstico manual: npm.cmd run doctor
+- Diagnóstico completo: npm.cmd run jobfinder:health
+
+PRIVACIDADE
+-----------
+
+Os dados pessoais ficam em ficheiros locais ignorados pelo Git. Para partilhar o
+software, usa criar-pacote.bat. Nunca cries um ZIP diretamente da pasta em uso.
+
+O Leagle Job prepara análises e rascunhos. O utilizador deve rever e enviar
+manualmente qualquer candidatura ou email.
