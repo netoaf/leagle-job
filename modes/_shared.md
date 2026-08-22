@@ -39,6 +39,13 @@ hard blockers. The only canonical recommendations are `apply`, `maybe` and
 - Do not manually append a new Markdown tracker row. Use the supported intake
   or merge path, then run `npm run verify`.
 - Canonical statuses are defined only in `templates/states.yml`.
+
+## Localized mode packs
+
+The `modes/de`, `modes/fr` and `modes/pt` folders provide language and market
+context only. Their `CANONICAL-OPERATIONAL-CONTRACT` notice makes this file the
+authority for score, tracker, preparation and safety behavior. A localized mode
+must never restore an obsolete direct-tracker, auto-submit or auto-upload flow.
 - A score is decision support, not proof that a job is live or suitable.
 
 ## Non-negotiable safety boundary

@@ -1,5 +1,7 @@
 # career-ops — Deutsche Modi (`modes/de/`)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. These files provide DACH market context only; never edit the tracker directly, upload files, send or submit.
+
 Dieser Ordner enthält die deutschen Übersetzungen der wichtigsten career-ops-Modi für Bewerber:innen, die im DACH-Raum (Deutschland, Österreich, Schweiz) suchen oder mit deutschen Stellenanzeigen arbeiten.
 
 ## Wann diese Modi nutzen?

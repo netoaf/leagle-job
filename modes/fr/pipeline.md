@@ -1,21 +1,24 @@
 # Mode : pipeline -- Inbox d'URLs (Second Brain)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. Use the supported local pipeline; never edit the tracker directly, upload files, send or submit.
+
 Traite les URLs d'offres accumulees dans `data/pipeline.md`. Le candidat ajoute des URLs quand il veut et lance ensuite `/career-ops pipeline` pour toutes les traiter d'un coup.
 
 ## Workflow
 
-1. **Lire** `data/pipeline.md` -> trouver les items `- [ ]` dans la section "En attente" / "Pending" / "Pendientes"
-2. **Pour chaque URL en attente** :
-   a. Calculer le prochain `REPORT_NUM` sequentiel (lire `reports/`, prendre le numero le plus eleve + 1)
-   b. **Extraire l'offre** avec Playwright (`browser_navigate` + `browser_snapshot`) -> WebFetch -> WebSearch
-   c. Si l'URL n'est pas accessible -> marquer comme `- [!]` avec une note et continuer
-   d. **Executer l'auto-pipeline complet** : Evaluation A-F -> Report .md -> PDF (si score >= 3.0) -> Tracker
-   e. **Deplacer de "En attente" vers "Traitees"** : `- [x] #NNN | URL | Entreprise | Role | Score/5 | PDF oui/non`
-3. **Si 3+ URLs en attente**, lancer des agents en parallele (Agent tool avec `run_in_background`) pour maximiser la vitesse.
-4. **A la fin**, afficher un tableau recapitulatif :
+1. Verifier une URL confirmee avec `npm run jobfinder:new:dry-run` ou
+   `evaluate-url.mjs`.
+2. La pipeline existante effectue l'extraction, le quality gate, la deduplication,
+   le score canonique 0--100 et le report.
+3. N'ecrire dans le dashboard qu'apres un choix humain explicite; ne jamais
+   creer manuellement une ligne de tracker.
+4. Executer `npm run verify` et afficher uniquement la prochaine action de
+   revue humaine. Ne pas lancer de navigateurs en parallele.
+
+Le recapitulatif utilise le score et la recommandation canoniques :
 
 ```
-| # | Entreprise | Role | Score | PDF | Action recommandee |
+| # | Entreprise | Role | Score/100 | Recommandation | Prochaine action |
 ```
 
 ## Format de pipeline.md

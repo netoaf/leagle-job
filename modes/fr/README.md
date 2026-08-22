@@ -1,5 +1,7 @@
 # career-ops -- Modes francophones (`modes/fr/`)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. These files provide French-market context only; never edit the tracker directly, upload files, send or submit.
+
 Ce dossier contient les traductions francaises des principaux modes career-ops pour les candidats qui ciblent le marche francophone (France, Belgique, Suisse romande, Luxembourg, Quebec).
 
 ## Quand utiliser ces modes ?

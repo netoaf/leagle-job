@@ -1,5 +1,7 @@
 # Modus: bewerben — Live-Assistent fürs Bewerbungsformular
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. This file may help draft answers, but it stops before upload, send or final submission.
+
 Interaktiver Modus für den Moment, in dem der Kandidat in Chrome ein Bewerbungsformular ausfüllt. Liest, was auf dem Bildschirm steht, lädt den Kontext der vorherigen Bewertung der Stellenanzeige und erzeugt passgenaue Antworten für jede Frage des Formulars.
 
 ## Voraussetzungen
@@ -102,9 +104,10 @@ Hinweise:
 ## Schritt 6 — Nach dem Absenden (optional)
 
 Wenn der Kandidat bestätigt, dass die Bewerbung raus ist:
-1. Status in `applications.md` von "Evaluated" auf "Applied" setzen
-2. Block G im Report mit den finalen Antworten aktualisieren
-3. Nächsten Schritt vorschlagen: `/career-ops contacto` für LinkedIn-Outreach an den Personalleiter / Hiring Manager
+1. Den Status über die Dashboard-Steuerung oder den unterstützten Workflow auf
+   `Applied` setzen, niemals durch direkte Markdown-Änderung.
+2. `npm run verify` ausführen und den Follow-up-Datensatz kontrollieren.
+3. Einen möglichen nächsten menschlichen Kontakt vorschlagen, ohne ihn zu senden.
 
 ## Scroll-Handling
 

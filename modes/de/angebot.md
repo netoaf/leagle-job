@@ -1,5 +1,7 @@
 # Modus: angebot — Vollständige Bewertung A-F
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. This file adds German-language analysis context only; never edit the tracker directly, upload files, send or submit.
+
 Wenn der Kandidat eine Stellenanzeige einfügt (Text oder URL), IMMER alle 6 Blöcke liefern.
 
 ## Schritt 0 — Archetyp-Erkennung
@@ -138,7 +140,8 @@ Die vollständige Bewertung in `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` ab
 (vollständiger Inhalt von Block F)
 
 ## G) Draft-Antworten für die Bewerbung
-(nur bei Score >= 4.5 — Entwürfe für die Antwortfelder im Bewerbungsformular)
+(nur wenn die kanonische Empfehlung `apply` lautet — Entwürfe für Formularfelder,
+die vor Upload oder finaler Übermittlung enden)
 
 ---
 
@@ -146,20 +149,10 @@ Die vollständige Bewertung in `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` ab
 (Liste mit 15-20 Keywords aus der Stellenanzeige für ATS-Optimierung)
 ```
 
-### 2. Im Tracker eintragen
+### 2. Über die unterstützte Pipeline speichern
 
-**IMMER** in `data/applications.md` eintragen:
-- Nächste fortlaufende Nummer
-- Aktuelles Datum
-- Firma
-- Rolle
-- Score: Match-Durchschnitt (1-5)
-- Status: `Evaluated`
-- PDF: ❌ (oder ✅, wenn Auto-Pipeline ein PDF erzeugt hat)
-- Report: relativer Link zur Report-Datei (z. B. `[001](reports/001-company-2026-01-01.md)`)
-
-**Tracker-Format:**
-
-```markdown
-| # | Datum | Firma | Rolle | Score | Status | PDF | Report |
-```
+Keine Tracker-Zeile direkt bearbeiten. Wenn die Stellenanzeige in das System
+aufgenommen werden soll, die bestätigte URL über `evaluate-url.mjs` oder
+`scan-and-rank.mjs` verarbeiten lassen; diese Pipeline vergibt die kanonische
+0--100 Bewertung, den Status und den Report-Link. Danach `npm run verify`
+ausführen. Diese Analyse bleibt ansonsten reines Review-Material.
