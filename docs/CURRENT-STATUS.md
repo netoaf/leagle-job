@@ -73,10 +73,9 @@ session are available at a later time.
 
 ## Next engineering priorities
 
-1. Build and independently validate a sanitized local release package from
-   this checked-out baseline; do not infer public GitHub parity before that
-   package is intentionally published.
-2. Make source health and market-coverage evidence explicit in the daily
-   workflow, then repair only verified high-value Portugal-first source URLs.
+1. Repair only verified high-value Portugal-first source URLs and keep source
+   health distinct from recent manual-board coverage.
+2. Consolidate the beginner setup, daily scan and recovery documentation so a
+   user can operate without Codex or code edits.
 3. Introduce an atomic persistence boundary before any future database
    migration or additional automation.
