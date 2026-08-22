@@ -15,6 +15,7 @@ reject_if:
   - missing_company
   - missing_title
   - missing_link
+  - source_access_blocked
   - inactive_or_expired
   - no_description
   - scam_or_mlm

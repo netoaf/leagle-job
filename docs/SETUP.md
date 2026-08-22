@@ -12,7 +12,7 @@
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/netoaf/leagle-job.git
+git clone https://github.com/<your-account>/leagle-job.git
 cd leagle-job
 npm ci
 npx playwright install chromium   # Required for PDF generation

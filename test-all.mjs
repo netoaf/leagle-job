@@ -99,7 +99,7 @@ for (const { name, allowFail } of scripts) {
 
 // ── 3. DASHBOARD BUILD ──────────────────────────────────────────
 
-const unitTests = run('node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs');
+const unitTests = run('node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs');
 if (unitTests !== null) {
   pass('Network safety and job-pipeline foundation tests pass');
 } else {
@@ -108,12 +108,15 @@ if (unitTests !== null) {
 
 if (!QUICK) {
   console.log('\n3. Dashboard build');
-  const goVersion = run('go version');
+  const bundledGo = join(ROOT, 'tools', 'go', 'bin', process.platform === 'win32' ? 'go.exe' : 'go');
+  const goCommand = existsSync(bundledGo) ? `"${bundledGo}"` : 'go';
+  const goEnv = { ...process.env, GOCACHE: join(ROOT, 'dashboard', '.gocache') };
+  const goVersion = run(`${goCommand} version`, { env: goEnv });
   if (goVersion === null) {
     warn('Dashboard build skipped (Go is optional and not installed)');
   } else {
     const dashboardOutput = join(tmpdir(), process.platform === 'win32' ? 'career-dashboard-test.exe' : 'career-dashboard-test');
-    const goBuild = run(`go build -o "${dashboardOutput}" .`, { cwd: join(ROOT, 'dashboard') });
+    const goBuild = run(`${goCommand} build -o "${dashboardOutput}" .`, { cwd: join(ROOT, 'dashboard'), env: goEnv });
     if (goBuild !== null) {
       pass('Dashboard compiles');
     } else {
@@ -240,6 +243,9 @@ const privacyIgnoreProbes = [
   'jds/job.md',
   'interview-prep/story-bank.md',
   'batch/tracker-additions/merged/001.tsv',
+  'backups/private-email-drafts.tsv',
+  'docs/GMAIL-DRAFT-AUDIT-2099-01-01.md',
+  'docs/superpowers/plans/private-plan.md',
 ];
 const missingIgnoreCoverage = hasProjectGitMetadata
   ? privacyIgnoreProbes.filter(f => run(`git check-ignore --no-index -- "${f}"`) === null)
@@ -250,6 +256,21 @@ if (!hasProjectGitMetadata && fileExists('.gitignore')) {
   pass(`Privacy ignore coverage (${privacyIgnoreProbes.length} probes)`);
 } else {
   fail(`Privacy ignore gaps (${missingIgnoreCoverage.length} path(s))`);
+}
+
+const packageScript = readFile('scripts/create-package.ps1');
+const packageOperationalNoteExclusions = [
+  '"backups"',
+  'docs\\superpowers',
+  '^docs\\\\.*-AUDIT-.*\\.md$',
+];
+const missingPackageOperationalNoteExclusions = packageOperationalNoteExclusions.filter(
+  marker => !packageScript.includes(marker),
+);
+if (missingPackageOperationalNoteExclusions.length === 0) {
+  pass('Sanitized package excludes local operational notes');
+} else {
+  fail(`Sanitized package may include local operational notes (${missingPackageOperationalNoteExclusions.length} exclusion(s) missing)`);
 }
 
 const trackedDashboardBinaries = trackedFiles.filter(
@@ -354,9 +375,8 @@ console.log('\n8. CLAUDE.md integrity');
 
 const claude = readFile('CLAUDE.md');
 const requiredSections = [
-  'Data Contract', 'Update Check', 'Ethical Use',
-  'Offer Verification', 'Canonical States', 'TSV Format',
-  'First Run', 'Onboarding',
+  'Product boundary', 'Data contract', 'Session checks',
+  'Canonical operational model', 'External boundaries', 'Verification',
 ];
 
 for (const section of requiredSections) {

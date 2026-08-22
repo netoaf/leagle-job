@@ -22,6 +22,8 @@ These files contain your personal data, customizations, and work product. Update
 | `data/pipeline.md` | Your URL inbox |
 | `data/scan-history.tsv` | Your scan history |
 | `data/email-drafts.tsv` | Your local email draft tracker |
+| `data/gmail-events.tsv` | Idempotent sent/reply events imported from Gmail |
+| `data/application-followups.tsv` | Follow-up dates, Gmail thread IDs and recommended next actions |
 | `reports/*` | Your evaluation reports |
 | `output/*` | Your generated PDFs |
 | `jds/*` | Your saved job descriptions |
@@ -64,6 +66,16 @@ These files contain system logic, scripts, templates, and instructions that impr
 
 ## The Rule
 
-**If a file is in the User Layer, no update process may read, modify, or delete it.**
+**If a file is in the User Layer, an update or release process must never
+modify, delete, bundle, publish or transmit it.** Runtime commands may read the
+user configuration and work product they need in order to operate locally.
 
 **If a file is in the System Layer, it can be safely replaced with the latest version from the upstream repo.**
+
+## Local operational notes
+
+Files matching `docs/*-AUDIT-*.md` and `docs/superpowers/` are ignored local
+working notes. They can contain vacancy, recipient, tracker or planning context
+and are not product documentation or release material. Keep durable,
+product-wide guidance in checked-in `docs/`; keep user-specific evidence in the
+User Layer.

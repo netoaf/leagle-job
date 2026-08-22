@@ -29,7 +29,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const VERIFY = process.argv.includes('--verify');
 
 // Canonical states and aliases
-const CANONICAL_STATES = ['Evaluated', 'Applied', 'Responded', 'Interview', 'Offer', 'Rejected', 'Discarded', 'SKIP'];
+const CANONICAL_STATES = ['Evaluated', 'Scheduled', 'Applied', 'Responded', 'Interview', 'Offer', 'Rejected', 'Discarded', 'SKIP'];
 
 function validateStatus(status) {
   const clean = status.replace(/\*\*/g, '').replace(/\s+\d{4}-\d{2}-\d{2}.*$/, '').trim();
@@ -76,6 +76,11 @@ function roleFuzzyMatch(a, b) {
 function extractReportNum(reportStr) {
   const m = reportStr.match(/\[(\d+)\]/);
   return m ? parseInt(m[1]) : null;
+}
+
+function extractLinkedInJobId(notes = '') {
+  const match = notes.match(/\[linkedin-job-id:(\d+)\]/i);
+  return match ? match[1] : null;
 }
 
 function scoreLooksLike(s) {
@@ -279,8 +284,13 @@ for (const file of tsvFiles) {
   if (!duplicate) {
     // Company + role fuzzy match
     const normCompany = normalizeCompany(addition.company);
+    const additionLinkedInJobId = extractLinkedInJobId(addition.notes);
     duplicate = existingApps.find(app => {
       if (normalizeCompany(app.company) !== normCompany) return false;
+      const existingLinkedInJobId = extractLinkedInJobId(app.notes);
+      if (additionLinkedInJobId && existingLinkedInJobId && additionLinkedInJobId !== existingLinkedInJobId) {
+        return false;
+      }
       return roleFuzzyMatch(addition.role, app.role);
     });
   }
@@ -346,9 +356,9 @@ if (DRY_RUN) console.log('(dry-run — no changes written)');
 // Optional verify
 if (VERIFY && !DRY_RUN) {
   console.log('\n--- Running verification ---');
-  const { execSync } = await import('child_process');
+  const { execFileSync } = await import('child_process');
   try {
-    execSync(`node ${join(CAREER_OPS, 'verify-pipeline.mjs')}`, { stdio: 'inherit' });
+    execFileSync(process.execPath, [join(CAREER_OPS, 'verify-pipeline.mjs')], { stdio: 'inherit' });
   } catch (e) {
     process.exit(1);
   }

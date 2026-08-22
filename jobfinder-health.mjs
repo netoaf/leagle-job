@@ -28,6 +28,9 @@ const checks = [
       'tests/safe-fetch.test.mjs',
       'tests/eightfold-adapter.test.mjs',
       'tests/job-pipeline-foundation.test.mjs',
+      'tests/application-actions.test.mjs',
+      'tests/prepare-portal-application.test.mjs',
+      'tests/source-coverage-audit.test.mjs',
     ],
     cwd: projectRoot,
   },
@@ -68,9 +71,21 @@ const checks = [
     cwd: projectRoot,
   },
   {
+    name: 'Gmail adapter and follow-up safety',
+    command: process.execPath,
+    args: ['--test', 'tests/gmail-adapter.test.mjs', 'tests/gmail-sync.test.mjs'],
+    cwd: projectRoot,
+  },
+  {
     name: 'application actions dry-run',
     command: process.execPath,
     args: ['application-actions.mjs', '--dry-run', '--top', '1'],
+    cwd: projectRoot,
+  },
+  {
+    name: 'source coverage visibility',
+    command: process.execPath,
+    args: ['source-coverage-audit.mjs'],
     cwd: projectRoot,
   },
   {

@@ -148,12 +148,17 @@ Atalhos principais:
 
 - setas: navegar;
 - `Enter`: abrir report;
-- `o`: abrir URL;
-- `c`: mudar estado;
-- `r`: refresh;
-- `a`: abrir acoes da ferramenta;
-- `v`: alternar vista;
+- `D`: executar o preflight Gmail da vaga selecionada; só pode criar um
+  rascunho Gmail não enviado quando a integração estiver explicitamente
+  configurada e todos os gates passarem;
+- `O`: abrir a vaga;
+- `C`: mudar estado;
+- setas esquerda/direita: mudar separador;
 - `Esc`: voltar/sair.
+
+O dashboard mostra apenas estas teclas de uso diario. Acoes de manutencao e
+diagnostico continuam disponiveis pelos comandos documentados, sem poluir a
+interface principal.
 
 Acoes disponiveis no dashboard:
 
@@ -218,8 +223,13 @@ npm.cmd run email-drafts -- --top 3
 ```
 
 Estes comandos escrevem apenas em `data/email-drafts.tsv` e
-`output/email-drafts-local/`. Nao criam drafts reais no Gmail, nao enviam email
-e nao anexam/uploadam CV.
+`output/email-drafts-local/`. Não criam drafts reais no Gmail, não enviam email
+e não anexam/uploadam CV.
+
+O passo opcional `npm run gmail-draft-live -- --id <id>` só é válido quando o
+Gmail foi configurado explicitamente. Requer destinatário, CV selecionado,
+verificação Playwright fresca e review Codex; pode criar um rascunho **não
+enviado** e nunca envia a mensagem. Ver [gmail-adapter.md](gmail-adapter.md).
 
 Checklist por vaga:
 

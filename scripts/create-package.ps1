@@ -28,7 +28,7 @@ $excludeDirs = @(
     "node_modules",
     "tools",
     "dist",
-    "backup",
+    "backups",
     "data",
     "reports",
     "output",
@@ -36,7 +36,8 @@ $excludeDirs = @(
     "interview-prep",
     "research",
     "batch\logs",
-    "batch\tracker-additions"
+    "batch\tracker-additions",
+    "docs\superpowers"
 )
 
 $excludeFiles = @(
@@ -62,6 +63,7 @@ $excludeFilePatterns = @(
     "(^|\\)\.env($|\.)",
     "\.(pem|pfx|p12|key)$",
     "(^|\\)(credentials?|secrets?)\.[^\\]+$"
+    "^docs\\.*-AUDIT-.*\.md$"
 )
 
 function Test-ExcludedPath {
@@ -69,7 +71,7 @@ function Test-ExcludedPath {
 
     $normalized = $RelativePath.Replace("/", "\").TrimStart([char]92)
     $segments = $normalized -split "\\"
-    if ($segments | Where-Object { $_ -in @(".git", ".gocache", "node_modules", "dist", "backup") }) {
+    if ($segments | Where-Object { $_ -in @(".git", ".gocache", "node_modules", "dist", "backups") }) {
         return $true
     }
     foreach ($dir in $excludeDirs) {

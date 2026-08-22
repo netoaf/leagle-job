@@ -11,7 +11,10 @@
     "test:foundation": "node --test tests/job-pipeline-foundation.test.mjs",
     "test:cv-selector": "node --test tests/cv-selector.test.mjs",
     "test:email-cv": "node --test tests/email-drafts-cv-selection.test.mjs",
-    "test:unit": "node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs",
+    "test:scoring": "node --test tests/job-scoring-service.test.mjs",
+    "test:gmail": "node --test tests/gmail-adapter.test.mjs tests/gmail-sync.test.mjs",
+    "test:unit": "node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/create-gmail-draft.test.mjs tests/gmail-adapter.test.mjs tests/gmail-sync.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs tests/net-empregos-search.test.mjs tests/prepare-portal-application.test.mjs tests/verify-pipeline-reconciliation.test.mjs",
+    "test:reconciliation": "node --test tests/verify-pipeline-reconciliation.test.mjs",
     "normalize": "node normalize-statuses.mjs",
     "dedup": "node dedup-tracker.mjs",
     "merge": "node merge-tracker.mjs",
@@ -65,8 +68,18 @@
     "email:check": "node email-drafts.mjs --check-policy",
     "email-drafts": "node email-drafts.mjs",
     "email-drafts:dry-run": "node email-drafts.mjs --dry-run",
+    "gmail-adapter": "node gmail-adapter.mjs prepare",
+    "gmail-adapter:dry-run": "node gmail-adapter.mjs prepare --dry-run",
+    "gmail-adapter:ready": "node gmail-adapter.mjs ready",
+    "gmail-sync": "node gmail-sync.mjs plan",
+    "gmail-followups": "node gmail-sync.mjs followups",
+    "verify-draft": "node verify-and-draft.mjs",
+    "gmail-draft-live": "node create-gmail-draft.mjs",
+    "portal-prepare": "node prepare-portal-application.mjs",
     "application-actions": "node application-actions.mjs",
     "application-actions:dry-run": "node application-actions.mjs --dry-run",
+    "coverage:audit": "node source-coverage-audit.mjs",
+    "coverage:audit:strict": "node source-coverage-audit.mjs --strict",
     "followups": "node follow-up-tracker.mjs",
     "followups:init": "node follow-up-tracker.mjs --init",
     "vault:snapshot": "node vault-snapshot.mjs",
@@ -94,11 +107,10 @@
     "liveness": "node check-liveness.mjs"
   },
   "keywords": ["ai", "job-search", "claude-code", "career", "automation"],
-  "author": "Afonso Neto",
+  "author": "Leagle Job contributors",
   "contributors": [
     "Santiago Fernández de Valderrama <hi@santifer.io> (https://santifer.io)"
   ],
-  "homepage": "https://github.com/netoaf",
   "upstream": "https://github.com/santifer/career-ops",
   "engines": {
     "node": ">=18"

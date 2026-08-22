@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "status": { "type": "string", "enum": ["ready_for_review", "blocked", "inactive"] },
+    "application_id": { "type": "integer" },
+    "apply_url": { "type": "string" },
+    "channel": { "type": "string" },
+    "completed_fields": { "type": "array", "items": { "type": "string" } },
+    "missing_fields": { "type": "array", "items": { "type": "string" } },
+    "questions": { "type": "array", "items": { "type": "string" } },
+    "cv_file": { "type": "string" },
+    "reason": { "type": "string" },
+    "error": { "type": "string" }
+  },
+  "required": ["status", "application_id", "apply_url", "channel", "completed_fields", "missing_fields", "questions", "cv_file", "reason", "error"],
+  "additionalProperties": false
+}

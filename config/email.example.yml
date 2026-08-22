@@ -6,6 +6,12 @@ auto_send: false
 allow_real_gmail_drafts: false
 allow_cv_attachment_in_gmail: false
 
+adapter:
+  transport: "codex_gmail_connector"
+  requests_dir: "output/gmail-adapter/draft-requests"
+  reviews_dir: "output/gmail-adapter/reviews"
+  results_dir: "output/gmail-adapter/results"
+
 drafts:
   store: "data/email-drafts.tsv"
   local_output_dir: "output/email-drafts-local"
@@ -14,12 +20,23 @@ drafts:
 
 attachments:
   planned_cv_pdf: "output/CV-Candidate.pdf"
-  require_explicit_attachment_approval: true
+  strategy: "deterministic_cv_selector"
+  require_explicit_attachment_approval: false
+  require_sha256: true
 
 sync:
   read_replies: false
   update_application_status: false
   newer_than_days: 30
+
+followups:
+  enabled: false
+  auto_create_drafts: false
+  # Optional user-owned sign-off for generated follow-up drafts. Leave blank
+  # when no signature has been confirmed.
+  signature_name: ""
+  no_response_after_days: 7
+  reply_action_due_days: 2
 
 labels:
   draft_label: "Leagle Job/Drafts"
@@ -31,4 +48,8 @@ safety:
   require_draft_quality_gate: true
   require_recipient_confirmed: true
   require_application_pack: true
+  require_vacancy_verified: true
+  require_live_vacancy_verified: true
+  live_verification_method: "playwright"
+  live_verification_max_age_minutes: 15
   never_send_without_approval: true

@@ -31,6 +31,25 @@ test('selects English Full-stack CV for an international ATS vacancy', () => {
   assert.equal(detectCvVariant(application).value, 'fullstack');
 });
 
+test('English draft language overrides Portuguese tracker commentary', () => {
+  const application = {
+    role: 'Internship Program - Technology',
+    notes: 'Excelente estrutura paga e híbrida; licenciatura a confirmar.',
+  };
+  const report = `
+**URL:** https://www.linkedin.com/jobs/view/123
+
+## Rascunho De Email
+Subject: Application - Internship Program Technology
+
+Hello,
+
+I would like to apply for this internship.
+`;
+
+  assert.equal(detectCvLanguage(application, report).value, 'en');
+});
+
 test('notes can override both automatic decisions', () => {
   const application = {
     role: 'Backend Developer',

@@ -44,10 +44,11 @@ type PipelineUpdateStatusMsg struct {
 
 // PipelineToolAction describes a safe local CareerOps command exposed in the dashboard.
 type PipelineToolAction struct {
-	ID          string
-	Label       string
-	Description string
-	Writes      bool
+	ID            string
+	Label         string
+	Description   string
+	Writes        bool
+	ApplicationID int
 }
 
 // PipelineRunActionMsg requests execution of a local CareerOps tool action.
@@ -59,6 +60,7 @@ type PipelineRunActionMsg struct {
 type PipelineActionFinishedMsg struct {
 	Action           PipelineToolAction
 	Succeeded        bool
+	Blocked          bool
 	Output           string
 	RefreshDashboard bool
 }
@@ -82,6 +84,7 @@ const (
 const (
 	filterAll       = "all"
 	filterEvaluated = "evaluated"
+	filterScheduled = "scheduled"
 	filterApplied   = "applied"
 	filterInterview = "interview"
 	filterSkip      = "skip"
@@ -96,6 +99,7 @@ type pipelineTab struct {
 var pipelineTabs = []pipelineTab{
 	{filterAll, "ALL"},
 	{filterEvaluated, "EVALUATED"},
+	{filterScheduled, "SCHEDULED"},
 	{filterApplied, "APPLIED"},
 	{filterInterview, "INTERVIEW"},
 	{filterTop, "TOP >=80"},
@@ -104,7 +108,7 @@ var pipelineTabs = []pipelineTab{
 
 var sortCycle = []string{sortScore, sortDate, sortCompany, sortStatus}
 
-var statusOptions = []string{"Evaluated", "Applied", "Responded", "Interview", "Offer", "Rejected", "Discarded", "SKIP"}
+var statusOptions = []string{"Evaluated", "Scheduled", "Applied", "Responded", "Interview", "Offer", "Rejected", "Discarded", "SKIP"}
 
 var toolActions = []PipelineToolAction{
 	{ID: "health", Label: "Health check", Description: "Run full Leagle Job validation."},
@@ -122,7 +126,7 @@ var toolActions = []PipelineToolAction{
 }
 
 // statusGroupOrder defines display order for grouped view.
-var statusGroupOrder = []string{"interview", "offer", "responded", "applied", "evaluated", "skip", "rejected", "discarded"}
+var statusGroupOrder = []string{"interview", "offer", "responded", "applied", "scheduled", "evaluated", "skip", "rejected", "discarded"}
 
 // PipelineModel implements the career pipeline dashboard screen.
 type PipelineModel struct {
@@ -253,7 +257,9 @@ func (m PipelineModel) Update(msg tea.Msg) (PipelineModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case PipelineActionFinishedMsg:
 		m.actionRunning = false
-		if msg.Succeeded {
+		if msg.Blocked {
+			m.actionMessage = "BLOQUEADO: " + msg.Action.Label
+		} else if msg.Succeeded {
 			m.actionMessage = "OK: " + msg.Action.Label
 		} else {
 			m.actionMessage = "FAILED: " + msg.Action.Label
@@ -352,6 +358,68 @@ func (m PipelineModel) handleKey(msg tea.KeyMsg) (PipelineModel, tea.Cmd) {
 		if app, ok := m.CurrentApp(); ok && app.JobURL != "" {
 			return m, func() tea.Msg {
 				return PipelineOpenURLMsg{URL: app.JobURL}
+			}
+		}
+
+	case "d":
+		if m.actionRunning {
+			m.actionMessage = "Já existe uma ação em execução"
+			return m, nil
+		}
+		if app, ok := m.CurrentApp(); ok {
+			if strings.ToLower(strings.TrimSpace(app.ApplyChannel)) != "email" {
+				m.actionMessage = "Esta vaga não usa candidatura por email"
+				m.actionOutput = applicationBlockReason(app)
+				return m, nil
+			}
+			if !strings.Contains(app.ApplyRecipient, "@") || isBlockedApplyStatus(app.ApplyStatus) {
+				m.actionMessage = "Rascunho bloqueado"
+				m.actionOutput = applicationBlockReason(app)
+				return m, nil
+			}
+			action := PipelineToolAction{
+				ID:            "create_draft",
+				Label:         "Criar rascunho no Gmail",
+				Description:   "Verificar a vaga, rever o email, anexar o CV certo e criar um rascunho Gmail nao enviado.",
+				Writes:        true,
+				ApplicationID: app.Number,
+			}
+			m.actionRunning = true
+			m.actionMessage = "A validar e criar rascunho no Gmail..."
+			m.actionOutput = ""
+			return m, func() tea.Msg {
+				return PipelineRunActionMsg{Action: action}
+			}
+		}
+
+	case "p":
+		if m.actionRunning {
+			m.actionMessage = "Já existe uma ação em execução"
+			return m, nil
+		}
+		if app, ok := m.CurrentApp(); ok {
+			if !isPortalApplyChannel(app.ApplyChannel) {
+				m.actionMessage = "Esta vaga não usa portal ou formulário"
+				m.actionOutput = applicationBlockReason(app)
+				return m, nil
+			}
+			if isBlockedApplyStatus(app.ApplyStatus) {
+				m.actionMessage = "Candidatura bloqueada"
+				m.actionOutput = applicationBlockReason(app)
+				return m, nil
+			}
+			action := PipelineToolAction{
+				ID:            "prepare_application",
+				Label:         "Preparar candidatura no portal",
+				Description:   "Verificar a vaga, preencher apenas dados confirmados, indicar o CV certo e parar antes do anexo/submissão humanos.",
+				Writes:        true,
+				ApplicationID: app.Number,
+			}
+			m.actionRunning = true
+			m.actionMessage = "A validar e preparar a candidatura..."
+			m.actionOutput = ""
+			return m, func() tea.Msg {
+				return PipelineRunActionMsg{Action: action}
 			}
 		}
 
@@ -737,17 +805,15 @@ func (m PipelineModel) renderSortBar() string {
 		Width(m.width).
 		Padding(0, 2)
 
-	sortLabel := fmt.Sprintf("[Sort: %s]", m.sortMode)
-	viewLabel := fmt.Sprintf("[View: %s]", m.viewMode)
-	count := fmt.Sprintf("%d shown", len(m.filtered))
+	count := fmt.Sprintf("%d vagas · ordenadas por relevância", len(m.filtered))
 	toolLabel := ""
 	if m.actionRunning {
-		toolLabel = "  [Tool: running]"
+		toolLabel = "  ·  a processar..."
 	} else if m.actionMessage != "" {
-		toolLabel = "  [Tool: " + ellipsize(m.actionMessage, 40) + "]"
+		toolLabel = "  ·  " + ellipsize(m.actionMessage, 52)
 	}
 
-	return style.Render(fmt.Sprintf("%s  %s  %s%s", sortLabel, viewLabel, count, toolLabel))
+	return style.Render(count + toolLabel)
 }
 
 func (m PipelineModel) renderBody() string {
@@ -905,9 +971,25 @@ func (m PipelineModel) renderPreview() string {
 	if app.NextAction != "" {
 		lines = append(lines, m.previewRows(padStyle, labelStyle, valueStyle, "Next", app.NextAction, contentW)...)
 	}
+	if app.ApplyChannel != "" {
+		lines = append(lines, m.previewRows(padStyle, labelStyle, valueStyle, "Candidatura", applicationMethodLabel(app), contentW)...)
+	}
+	if app.ApplyBlocker != "" && app.ApplyBlocker != "sem blocker operacional obvio; rever pack antes de aplicar" {
+		lines = append(lines, m.previewRows(padStyle, labelStyle, dimStyle, "Bloqueio", app.ApplyBlocker, contentW)...)
+	}
 	if app.FollowupNotes != "" {
 		lines = append(lines, m.previewRows(padStyle, labelStyle, dimStyle, "Follow-up notes", app.FollowupNotes, contentW)...)
 	}
+
+	button, description, enabled := applicationButton(app)
+	buttonStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Base).Background(m.theme.Green).Padding(0, 2)
+	if !enabled || m.actionRunning {
+		buttonStyle = buttonStyle.Foreground(m.theme.Subtext).Background(m.theme.Overlay)
+	}
+	if m.actionRunning {
+		button = "[ ... ] A PROCESSAR"
+	}
+	lines = append(lines, padStyle.Render(buttonStyle.Render(button)), padStyle.Render(dimStyle.Render(description)))
 
 	if m.actionMessage != "" || m.actionOutput != "" {
 		lines = append(lines, padStyle.Render(divider.Render(strings.Repeat("-", m.width-4))))
@@ -986,25 +1068,85 @@ func (m PipelineModel) renderHelp() string {
 				keyStyle.Render("Esc") + descStyle.Render(" cancel"))
 	}
 
-	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("Leagle Job · based on Career-Ops")
+	actionKey, actionDescription := m.currentApplicationHelp()
+	keys := keyStyle.Render("↑↓") + descStyle.Render(" vagas   ") +
+		keyStyle.Render("←→") + descStyle.Render(" listas   ") +
+		keyStyle.Render("Enter") + descStyle.Render(" detalhes   ") +
+		keyStyle.Render(actionKey) + descStyle.Render(" "+actionDescription+"   ") +
+		keyStyle.Render("O") + descStyle.Render(" abrir vaga   ") +
+		keyStyle.Render("C") + descStyle.Render(" estado   ") +
+		keyStyle.Render("Esc") + descStyle.Render(" sair")
 
-	keys := keyStyle.Render("up/down") + descStyle.Render(" nav  ") +
-		keyStyle.Render("left/right") + descStyle.Render(" tabs  ") +
-		keyStyle.Render("s") + descStyle.Render(" sort  ") +
-		keyStyle.Render("r") + descStyle.Render(" refresh  ") +
-		keyStyle.Render("a") + descStyle.Render(" actions  ") +
-		keyStyle.Render("Enter") + descStyle.Render(" report  ") +
-		keyStyle.Render("o") + descStyle.Render(" open URL  ") +
-		keyStyle.Render("c") + descStyle.Render(" change  ") +
-		keyStyle.Render("v") + descStyle.Render(" view  ") +
-		keyStyle.Render("Esc") + descStyle.Render(" quit")
+	return style.Render(keys)
+}
 
-	gap := m.width - lipgloss.Width(keys) - lipgloss.Width(brand) - 2
-	if gap < 1 {
-		gap = 1
+func (m PipelineModel) currentApplicationHelp() (string, string) {
+	app, ok := m.CurrentApp()
+	if !ok {
+		return "-", "sem ação"
 	}
+	channel := strings.ToLower(strings.TrimSpace(app.ApplyChannel))
+	if channel == "email" {
+		return "D", "criar draft Gmail"
+	}
+	if isPortalApplyChannel(channel) {
+		return "P", "preparar candidatura"
+	}
+	return "!", "canal por confirmar"
+}
 
-	return style.Render(keys + strings.Repeat(" ", gap) + brand)
+func applicationButton(app model.CareerApplication) (string, string, bool) {
+	channel := strings.ToLower(strings.TrimSpace(app.ApplyChannel))
+	if channel == "email" {
+		enabled := strings.Contains(app.ApplyRecipient, "@") && !isBlockedApplyStatus(app.ApplyStatus)
+		if enabled {
+			return "[ D ] CRIAR DRAFT GMAIL", "Cria um rascunho real no Gmail com o CV correto; nunca envia.", true
+		}
+		return "[ ! ] EMAIL BLOQUEADO", applicationBlockReason(app), false
+	}
+	if isPortalApplyChannel(channel) {
+		if isBlockedApplyStatus(app.ApplyStatus) {
+			return "[ ! ] CANDIDATURA BLOQUEADA", applicationBlockReason(app), false
+		}
+		return "[ P ] PREPARAR CANDIDATURA", "Preenche dados confirmados e anexa o CV; para antes de submeter.", true
+	}
+	return "[ ! ] CANAL POR CONFIRMAR", applicationBlockReason(app), false
+}
+
+func applicationMethodLabel(app model.CareerApplication) string {
+	channel := strings.TrimSpace(app.ApplyChannel)
+	status := strings.TrimSpace(app.ApplyStatus)
+	if channel == "" {
+		return "a confirmar"
+	}
+	if status == "" {
+		return channel
+	}
+	return channel + " / " + status
+}
+
+func applicationBlockReason(app model.CareerApplication) string {
+	if strings.TrimSpace(app.ApplyBlocker) != "" {
+		return app.ApplyBlocker
+	}
+	if strings.TrimSpace(app.ApplyNext) != "" {
+		return app.ApplyNext
+	}
+	return "Método de candidatura ou dados obrigatórios ainda não confirmados."
+}
+
+func isPortalApplyChannel(channel string) bool {
+	switch strings.ToLower(strings.TrimSpace(channel)) {
+	case "official_portal", "linkedin_apply", "job_board_apply", "manual_apply_url":
+		return true
+	default:
+		return false
+	}
+}
+
+func isBlockedApplyStatus(status string) bool {
+	value := strings.ToLower(strings.TrimSpace(status))
+	return value == "" || strings.HasPrefix(value, "blocked_") || strings.HasPrefix(value, "needs_")
 }
 
 func (m PipelineModel) overlayActionPicker(body string) string {
@@ -1094,6 +1236,7 @@ func (m PipelineModel) statusColorMap() map[string]lipgloss.Color {
 		"interview": m.theme.Green,
 		"offer":     m.theme.Green,
 		"applied":   m.theme.Sky,
+		"scheduled": m.theme.Yellow,
 		"responded": m.theme.Blue,
 		"evaluated": m.theme.Text,
 		"skip":      m.theme.Red,
@@ -1122,6 +1265,8 @@ func statusLabel(norm string) string {
 		return "Responded"
 	case "applied":
 		return "Applied"
+	case "scheduled":
+		return "Scheduled"
 	case "evaluated":
 		return "Evaluated"
 	case "skip":

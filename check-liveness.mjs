@@ -16,6 +16,8 @@
 
 import { chromium } from 'playwright';
 import { readFile } from 'fs/promises';
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import {
   assertSafeNavigationUrl,
   installPlaywrightNetworkGuard,
@@ -32,10 +34,16 @@ const EXPIRED_PATTERNS = [
   /this job (listing )?is closed/i,
   /job (listing )?not found/i,
   /the page you are looking for doesn.t exist/i, // Workday /job/ 404
-  /\d+\s+jobs?\s+found/i,           // Workday: landed on listing page ("663 JOBS FOUND") instead of a specific job
-  /search for jobs page is loaded/i, // Workday SPA indicator for listing page
   /diese stelle (ist )?(nicht mehr|bereits) besetzt/i,
   /offre (expirée|n'est plus disponible)/i,
+  /esta oferta (já|ja) não está acti(?:va|ve)/i,
+  /esta oferta (já|ja) não está ativa/i,
+  /oferta.*(?:inativa|inactiva|expirada|encerrada)/i,
+];
+
+const LISTING_PATTERNS = [
+  /\d+\s+jobs?\s+found/i,
+  /search for jobs page is loaded/i,
 ];
 
 // URL patterns that indicate an ATS has redirected away from the job (closed/expired)
@@ -52,12 +60,14 @@ const APPLY_PATTERNS = [
   /easy apply/i,
   /start application/i,  // Ashby
   /ich bewerbe mich/i,   // German Greenhouse
+  /\bcandidat(?:ar|ura|uras)\b/i,
+  /mostrar\s+email/i,    // Net-Empregos official email reveal control
 ];
 
 // Below this length the page is probably just nav/footer (closed ATS page)
 const MIN_CONTENT_CHARS = 300;
 
-async function checkUrl(page, url) {
+export async function checkUrl(page, url, options = {}) {
   try {
     await assertSafeNavigationUrl(url);
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -80,28 +90,100 @@ async function checkUrl(page, url) {
 
     const bodyText = await page.evaluate(() => document.body?.innerText ?? '');
 
-    // Apply button is the strongest positive signal — check it first.
-    // This short-circuits before expired patterns that can appear on active pages
-    // (e.g. Workday's split-view layout shows "N JOBS FOUND" even on active job pages).
-    if (APPLY_PATTERNS.some(p => p.test(bodyText))) {
-      return { result: 'active', reason: 'apply button detected' };
-    }
-
     for (const pattern of EXPIRED_PATTERNS) {
       if (pattern.test(bodyText)) {
-        return { result: 'expired', reason: `pattern matched: ${pattern.source}` };
+        return { result: 'expired', reason: `pattern matched: ${pattern.source}`, final_url: finalUrl, http_status: status };
       }
     }
 
     if (bodyText.trim().length < MIN_CONTENT_CHARS) {
-      return { result: 'expired', reason: 'insufficient content — likely nav/footer only' };
+      return { result: 'expired', reason: 'insufficient content — likely nav/footer only', final_url: finalUrl, http_status: status };
     }
 
-    return { result: 'uncertain', reason: 'content present but no apply button found' };
+    const titleMatched = roleAppearsOnPage(options.expectedRole, bodyText, await page.title());
+    if (!titleMatched) {
+      const listingPattern = LISTING_PATTERNS.find((pattern) => pattern.test(bodyText));
+      if (listingPattern) {
+        return {
+          result: 'expired',
+          reason: `redirected to a generic listings page: ${listingPattern.source}`,
+          final_url: finalUrl,
+          http_status: status,
+        };
+      }
+      return {
+        result: 'uncertain',
+        reason: `expected role not found on rendered page: ${options.expectedRole || 'unknown'}`,
+        final_url: finalUrl,
+        http_status: status,
+      };
+    }
+
+    if (hasApplicationChannel(bodyText)) {
+      return {
+        result: 'active',
+        reason: 'role, description and application channel detected',
+        final_url: finalUrl,
+        http_status: status,
+      };
+    }
+
+    return {
+      result: 'uncertain',
+      reason: 'role content present but no application channel found',
+      final_url: finalUrl,
+      http_status: status,
+    };
 
   } catch (err) {
     return { result: 'expired', reason: `navigation error: ${err.message.split('\n')[0]}` };
   }
+}
+
+export async function checkSingleUrl(url, options = {}) {
+  const browser = await chromium.launch({ headless: options.visible !== true });
+  const context = await browser.newContext({ serviceWorkers: 'block' });
+  await installPlaywrightNetworkGuard(context, {
+    blockedResourceTypes: ['image', 'media', 'font'],
+  });
+  const page = await context.newPage();
+  try {
+    return await checkUrl(page, url, options);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+export function roleAppearsOnPage(expectedRole, bodyText, pageTitle = '') {
+  const role = normalizeForMatch(expectedRole);
+  if (!role) return false;
+  const page = normalizeForMatch(`${pageTitle} ${bodyText}`);
+  if (!page) return false;
+  if (page.includes(role)) return true;
+
+  const ignored = new Set([
+    'a', 'at', 'da', 'de', 'do', 'e', 'em', 'for', 'intern', 'internship',
+    'junior', 'm', 'f', 'program', 'programme', 'the',
+  ]);
+  const tokens = role.split(' ').filter((token) => token.length >= 3 && !ignored.has(token));
+  if (tokens.length === 0) return false;
+  const matched = tokens.filter((token) => page.includes(token)).length;
+  return matched >= Math.max(1, Math.ceil(tokens.length * 0.6));
+}
+
+export function hasApplicationChannel(bodyText) {
+  return APPLY_PATTERNS.some((pattern) => pattern.test(String(bodyText || '')));
+}
+
+function normalizeForMatch(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 async function main() {
@@ -150,7 +232,9 @@ async function main() {
   if (expired > 0 || uncertain > 0) process.exit(1);
 }
 
-main().catch(err => {
-  console.error('Fatal:', err.message);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(err => {
+    console.error('Fatal:', err.message);
+    process.exit(1);
+  });
+}

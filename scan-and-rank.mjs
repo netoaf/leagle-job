@@ -434,11 +434,12 @@ function buildApplicationMessage(job, evaluation, configs, language) {
   const name = candidate.full_name || 'Candidate';
   const confirmedSkills = getConfirmedSkills(configs);
   const matchedSkills = asArray(job.stack_required).filter((tech) =>
-    confirmedSkills.some((skill) => normalizeText(skill) === normalizeText(tech) || normalizeText(skill).includes(normalizeText(tech)) || normalizeText(tech).includes(normalizeText(skill))));
+    confirmedSkills.some((skill) => isConfirmedSkillMatch(skill, tech)));
   const skillsText = sanitizeSkillsForDraft(matchedSkills.length > 0 ? matchedSkills : confirmedSkills.slice(0, 6), language).join(', ');
+  const applicationRole = applicationFacingRole(job);
   const subject = language === 'pt'
-    ? `Assunto: Candidatura - ${job.title}`
-    : `Subject: Application - ${job.title}`;
+    ? `Assunto: Candidatura - ${applicationRole}`
+    : `Subject: Application - ${applicationRole}`;
   const isInternshipLike = looksInternshipLike(job);
   const cautionLine = evaluation.recommendation === 'maybe'
     ? (language === 'pt'
@@ -462,7 +463,7 @@ function buildApplicationMessage(job, evaluation, configs, language) {
 
 Boa tarde,
 
-${intro} Tenho interesse na vaga de ${job.title} porque procuro ${targetFraming}.
+${intro} Tenho interesse na vaga de ${applicationRole} porque procuro ${targetFraming}.
 
 Tenho bases praticas confirmadas em ${skillsText}. ${privateProjectLine}
 
@@ -484,7 +485,7 @@ ${name}`;
 
 Hello,
 
-${intro} I am interested in the ${job.title} role because I am looking for ${targetFraming}.
+${intro} I am interested in the ${applicationRole} role because I am looking for ${targetFraming}.
 
 I have confirmed practical foundations in ${skillsText}. ${privateProjectLine}
 
@@ -496,6 +497,20 @@ Best regards,
 ${name}`;
 }
 
+export function applicationFacingRole(job = {}) {
+  const title = normalizeWhitespace(job.title || 'a confirmar');
+  const normalized = normalizeText(title);
+  if (!normalized.includes('senior') || !normalized.includes('junior')) return title;
+
+  const juniorTitle = title
+    .replace(/s(?:e|\u00e9)nior\s*\/\s*junior/iu, 'Junior')
+    .replace(/senior\s*(?:e|and|&)\s*junior/iu, 'Junior');
+  const description = normalizeWhitespace(job.description || '');
+  const reference = description.match(/junior\s*-?\s*refer(?:e|\u00ea)ncia\s*-?\s*([A-Z0-9-]+)/iu)?.[1];
+
+  return reference ? `${juniorTitle} (ref. ${reference})` : juniorTitle;
+}
+
 function looksInternshipLike(job) {
   const text = normalizeText(`${job.title || ''} ${job.description || ''}`);
   return ['intern', 'internship', 'trainee', 'estagio', 'estagiario', 'iefp', 'graduate program'].some((needle) => text.includes(needle));
@@ -504,7 +519,7 @@ function looksInternshipLike(job) {
 function buildCvAdjustments(job, evaluation, configs) {
   const skills = getConfirmedSkills(configs);
   const matched = asArray(job.stack_required).filter((tech) =>
-    skills.some((skill) => normalizeText(skill) === normalizeText(tech) || normalizeText(skill).includes(normalizeText(tech)) || normalizeText(tech).includes(normalizeText(skill))));
+    skills.some((skill) => isConfirmedSkillMatch(skill, tech)));
   const adjustments = [
     'Manter posicionamento junior/estagio; nao apresentar perfil mid-level ou senior.',
     'Nao inventar experiencia, certificados, metricas, clientes, links ou projetos.',
@@ -794,7 +809,7 @@ function printCountSummary(summary, label) {
   console.log(`${label}: ${entries.map(([key, value]) => `${key}: ${value}`).join(', ')}`);
 }
 
-function inferLanguage(job) {
+export function inferLanguage(job) {
   const company = normalizeText(job.company || '');
   const portugueseContextCompanies = [
     'santander',
@@ -826,6 +841,23 @@ function inferLanguage(job) {
   if (portugueseContextCompanies.some((item) => company.includes(normalizeText(item)))) return 'pt';
   if (internationalDefaultEnglishCompanies.some((item) => company.includes(normalizeText(item)))) return 'en';
 
+  const vacancyText = ` ${normalizeText(`${job.title || ''} ${job.description || ''}`)} `;
+  const portugueseSignals = [
+    ' candidatura ', ' conhecimentos ', ' formação ', ' formacao ', ' equipa ',
+    ' estágio ', ' estagio ', ' aprendizagem ', ' desenvolvimento ', ' procuramos ',
+    ' valorizamos ', ' responsabilidades ', ' oportunidade ',
+  ];
+  const englishSignals = [
+    ' application ', ' skills ', ' team ', ' internship ', ' learning ',
+    ' development ', ' candidate ', ' responsibilities ', ' opportunity ',
+    ' experience ', ' you will ', ' we are ', ' as an intern ',
+  ];
+  const portugueseScore = portugueseSignals.filter((signal) => vacancyText.includes(signal)).length;
+  const englishScore = englishSignals.filter((signal) => vacancyText.includes(signal)).length;
+
+  if (englishScore >= portugueseScore + 2) return 'en';
+  if (portugueseScore >= englishScore + 2) return 'pt';
+
   const text = normalizeText(`${job.company} ${job.location} ${job.link} ${job.description}`);
   return /portugal|lisboa|lisbon|porto|coimbra|aveiro|braga|\.pt/.test(text) ? 'pt' : 'en';
 }
@@ -839,6 +871,23 @@ function getConfirmedSkills(configs) {
   return asArray(configs.profile.skills?.confirmed)
     .map((skill) => typeof skill === 'string' ? skill : skill?.name)
     .filter(Boolean);
+}
+
+export function isConfirmedSkillMatch(candidateSkill, vacancySkill) {
+  const candidate = normalizeText(candidateSkill).replace(/[^a-z0-9+#.]/g, '');
+  const vacancy = normalizeText(vacancySkill).replace(/[^a-z0-9+#.]/g, '');
+  if (!candidate || !vacancy) return false;
+  if (candidate === vacancy) return true;
+
+  // Only equivalences that are supported by the candidate evidence bank.
+  // Never use substring matching here: it made "JavaScript" prove "Java".
+  const aliases = new Set([
+    'sql|sqlserver',
+    'restapi|restfulapi',
+    'asp.netcoremvc|asp.netcore',
+    'entityframeworkcore|efcore',
+  ]);
+  return aliases.has(`${candidate}|${vacancy}`) || aliases.has(`${vacancy}|${candidate}`);
 }
 
 function sanitizeSkillsForDraft(skills, language) {
