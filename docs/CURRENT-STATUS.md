@@ -73,8 +73,10 @@ session are available at a later time.
 
 ## Next engineering priorities
 
-1. Consolidate this baseline into a clean, sanitized local commit.
-2. Align all agent modes and user-facing documentation with the deterministic
-   score, canonical statuses and current safety boundaries.
+1. Build and independently validate a sanitized local release package from
+   this checked-out baseline; do not infer public GitHub parity before that
+   package is intentionally published.
+2. Make source health and market-coverage evidence explicit in the daily
+   workflow, then repair only verified high-value Portugal-first source URLs.
 3. Introduce an atomic persistence boundary before any future database
    migration or additional automation.

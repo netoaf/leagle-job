@@ -33,5 +33,8 @@ function Resolve-GitleaksCommand {
 }
 
 $gitleaks = Resolve-GitleaksCommand
+$env:GIT_CONFIG_COUNT = '1'
+$env:GIT_CONFIG_KEY_0 = 'safe.directory'
+$env:GIT_CONFIG_VALUE_0 = $resolvedRoot.Replace('\', '/')
 & $gitleaks git --redact --no-banner --exit-code 1 '--log-opts=--all' $resolvedRoot
 exit $LASTEXITCODE
