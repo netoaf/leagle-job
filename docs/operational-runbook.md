@@ -35,6 +35,24 @@ Este comando agrega:
 
 Se este comando falhar, corrigir antes de procurar vagas novas.
 
+## Analise de segredos
+
+Antes de partilhar uma branch ou criar um pacote, executar:
+
+```powershell
+npm.cmd run security:scan
+```
+
+O comando analisa todo o historico Git, redige os valores encontrados e falha
+se detetar um segredo. Nao le nem envia dados externos. O executavel local em
+`tools/gitleaks/` nao entra no Git nem no pacote; em Windows pode ser criado
+com o Go bundled:
+
+```powershell
+$env:GOBIN = "$PWD\tools\gitleaks"
+.\tools\go\bin\go.exe install github.com/zricethezav/gitleaks/v8@v8.30.1
+```
+
 ## Daily Workflow
 
 1. Confirmar saude:

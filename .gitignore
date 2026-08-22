@@ -44,6 +44,8 @@ dist/
 dashboard/*.exe*
 tools/codex/
 tools/go/
+# Local security scanner installed from the pinned official Go module.
+tools/gitleaks/
 
 # OS
 .DS_Store
