@@ -2,6 +2,10 @@
 
 O guia principal para novos utilizadores é [COMECE-AQUI.md](COMECE-AQUI.md). No Windows, basta extrair o ZIP e fazer duplo clique em `setup.bat`.
 
+Depois da instalacao, o Leagle Job pode ser usado apenas com PowerShell e o
+dashboard. O guia principal inclui o fluxo de saude, cobertura, pesquisa em
+preview, escrita limitada e recuperacao; Codex e Claude Code sao opcionais.
+
 ## O que o instalador faz
 
 - verifica Node.js 18 ou superior;

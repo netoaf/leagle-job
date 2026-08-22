@@ -1,86 +1,47 @@
 # Setup Guide
 
-## Prerequisites
+`COMECE-AQUI.md` is the canonical beginner guide. On Windows, extract the ZIP
+and run `setup.bat`; it installs the locked Node dependencies, optional
+Playwright browser support, neutral local templates and the first diagnostic.
 
-- [Claude Code](https://claude.ai/code) installed and configured
-- Node.js 18+ (for PDF generation and utility scripts)
-- The Windows ZIP already includes the dashboard. Go 1.24.2+ is only needed
-  when building the dashboard or a release package from source.
+Codex, Claude Code and other agents are optional. The local pipeline, terminal
+dashboard, scoring, tracker and reviewed application packs work without them.
 
-## Quick Start (5 steps)
+## Manual setup
 
-### 1. Clone and install
+Use this only when `setup.bat` is unavailable:
 
-```bash
-git clone https://github.com/<your-account>/leagle-job.git
-cd leagle-job
-npm ci
-npx playwright install chromium   # Required for PDF generation
+```powershell
+npm.cmd ci
+npx.cmd playwright install chromium
+Copy-Item config/profile.example.yml config/profile.yml
+Copy-Item config/scoring.example.yml config/scoring.yml
+Copy-Item config/jobfinder-rules.example.yml config/jobfinder-rules.yml
+Copy-Item modes/_profile.template.md modes/_profile.md
+Copy-Item templates/portals.example.yml portals.yml
+Copy-Item templates/cv.example.md cv.md
+npm.cmd run doctor
 ```
 
-### 2. Configure your profile
+Edit the local `cv.md`, `config/profile.yml`, `modes/_profile.md` and
+`portals.yml` before any real search. They are ignored by Git and never belong
+in a release package.
 
-```bash
-cp config/profile.example.yml config/profile.yml
-cp config/scoring.example.yml config/scoring.yml
-cp config/jobfinder-rules.example.yml config/jobfinder-rules.yml
+## First local workflow
+
+```powershell
+npm.cmd run jobfinder:health
+npm.cmd run portals:audit
+npm.cmd run coverage:audit
+npm.cmd run leagle:new:dry-run -- --limit 80
 ```
 
-Edit `config/profile.yml` with your personal details: name, email, target roles, narrative, proof points.
+Review results before using any write-mode command. See
+[`operational-runbook.md`](operational-runbook.md) for the full daily,
+recovery and application-review workflow.
 
-### 3. Add your CV
+## Dashboard and release build
 
-Create `cv.md` in the project root with your full CV in markdown format. This is the source of truth for all evaluations and PDFs.
-
-(Optional) Create `article-digest.md` with proof points from your portfolio projects/articles.
-
-### 4. Configure portals
-
-```bash
-cp templates/portals.example.yml portals.yml
-```
-
-Edit `portals.yml`:
-- Update `title_filter.positive` with keywords matching your target roles
-- Add companies you want to track in `tracked_companies`
-- Customize `search_queries` for your preferred job boards
-
-### 5. Start using
-
-Open Claude Code in this directory:
-
-```bash
-claude
-```
-
-Then paste a job offer URL or description. Career-ops will automatically evaluate it, generate a report, create a tailored PDF, and track it.
-
-## Available Commands
-
-| Action | How |
-|--------|-----|
-| Evaluate an offer | Paste a URL or JD text |
-| Search for offers | `/career-ops scan` |
-| Process pending URLs | `/career-ops pipeline` |
-| Generate a PDF | `/career-ops pdf` |
-| Batch evaluate | `/career-ops batch` |
-| Check tracker status | `/career-ops tracker` |
-| Fill application form | `/career-ops apply` |
-
-## Verify Setup
-
-```bash
-node cv-sync-check.mjs      # Check configuration
-node verify-pipeline.mjs     # Check pipeline integrity
-```
-
-## Build Dashboard (Optional)
-
-```bash
-cd dashboard
-go build -o career-dashboard .
-./career-dashboard --path ..  # Opens TUI pipeline viewer
-```
-
-For a release build, `scripts/create-package.ps1` uses Go from `PATH`,
-`tools/go/bin/go.exe`, or the executable path in `JOBFINDER_GO`.
+The Windows ZIP includes `dashboard\career-dashboard-live.exe`; use Go 1.24.2+
+only to rebuild the dashboard or produce a release package. For a safe local
+package, run `criar-pacote.bat`; never zip a live worktree manually.
