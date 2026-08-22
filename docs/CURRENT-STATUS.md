@@ -25,9 +25,11 @@ unless that exact revision contains it.
   tracking and follow-up tracking.
 - Network safety boundary for direct HTTP and browser fallback, including
   public-address checks, redirect revalidation and response budgets.
+- Repeatable redacted full-history secret scan through the locally ignored
+  Gitleaks binary or an explicitly configured executable.
 - Optional Codex/Gmail integration. When explicitly enabled and every gate
-  passes, it may create an unsent Gmail draft. It never sends email, uploads a
-  CV or submits an application.
+  passes, it may create an unsent Gmail draft with its deterministic local CV
+  attachment. It never sends email or submits an application.
 - Optional portal preparation may fill only confirmed fields and stops before
   file upload or final submission.
 
@@ -37,10 +39,11 @@ The local baseline candidate was last checked on 2026-08-22 with:
 
 | Gate | Result |
 | --- | --- |
-| Node unit suite | 107 passing, 0 failing |
+| Node unit suite | 114 passing, 0 failing |
 | Product health | 15/15 checks passing |
 | Pipeline reconciliation | 0 errors, 0 warnings across 126 tracker entries |
 | Dependency audit | no known production vulnerabilities reported |
+| Secret scan | redacted full Git history scan passed with no leaks |
 | Whitespace check | no whitespace errors; some CRLF/LF normalization warnings remain |
 
 These results prove the local deterministic checks. They do not prove that
