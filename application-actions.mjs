@@ -140,16 +140,16 @@ function buildBlocker({ application, report, applyUrl, channel, recipient, statu
   return blockers.length ? unique(blockers).join('; ') : 'nenhum blocker operacional confirmado; rever os campos antes da submissão final';
 }
 
-function buildNextAction(status, channel) {
+export function buildNextAction(status, channel) {
   if (status === 'blocked_missing_report') return 'Regenerar ou corrigir report antes de preparar candidatura.';
   if (status === 'needs_channel') return 'Encontrar canal oficial de candidatura e confirmar que a vaga continua ativa.';
   if (status === 'needs_recipient') return 'Confirmar email do recrutador/empresa antes de criar draft real.';
   if (status === 'needs_linkedin_verification') return 'Abrir a vaga numa sessão LinkedIn autenticada e confirmar requisitos, localização e canal.';
   if (status === 'needs_candidate_confirmation') return 'Resolver as confirmações pessoais indicadas no blocker antes de preparar a candidatura.';
-  if (status === 'ready_portal_prepare') return 'Preparar o formulário e o CV pelo portal; parar antes da submissão final para revisão humana.';
-  if (channel === 'linkedin_apply') return 'Abrir a vaga no LinkedIn, rever campos e anexos; preencher com assistencia e deixar o envio final para aprovacao humana.';
-  if (channel === 'job_board_apply') return 'Abrir o job board, autenticar/revelar o canal oficial, rever CV e campos; envio final apenas com aprovacao humana.';
-  if (channel === 'official_portal') return 'Abrir o portal oficial, preencher campos conhecidos e anexar o CV selecionado; parar antes da submissao final para aprovacao humana.';
+  if (status === 'ready_portal_prepare') return 'Preparar o formulário com dados confirmados e indicar o CV selecionado; parar antes do upload e da submissão final para revisão humana.';
+  if (channel === 'linkedin_apply') return 'Abrir a vaga no LinkedIn, rever campos e indicar o CV selecionado; preencher apenas dados confirmados e parar antes do upload e do envio final.';
+  if (channel === 'job_board_apply') return 'Abrir o job board, autenticar ou revelar o canal oficial, rever campos e indicar o CV selecionado; parar antes do upload e do envio final.';
+  if (channel === 'official_portal') return 'Abrir o portal oficial, preencher campos confirmados e indicar o CV selecionado; parar antes do upload e da submissão final para aprovação humana.';
   if (normalizeText(channel).includes('email')) return 'Rever destinatario, corpo e CV no Gmail; enviar apenas apos aprovacao humana.';
   return 'Abrir o canal oficial, rever pack/CV e concluir manualmente apenas apos aprovacao humana.';
 }

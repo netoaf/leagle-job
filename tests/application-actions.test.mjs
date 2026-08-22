@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { extractActionStatus, inferApplicationChannel } from '../application-actions.mjs';
+import { buildNextAction, extractActionStatus, inferApplicationChannel } from '../application-actions.mjs';
 import { isActionableStatus, summarizeApplications } from '../lib/applications-store.mjs';
 
 test('classifies LinkedIn application pages', () => {
@@ -38,4 +38,11 @@ test('explicit audited action status overrides generic inference', () => {
   assert.equal(extractActionStatus('[cv:en] [action:ready_portal_prepare] PRIORIDADE'), 'ready_portal_prepare');
   assert.equal(extractActionStatus('[action:needs_linkedin_verification] HOLD'), 'needs_linkedin_verification');
   assert.equal(extractActionStatus('sem marcador'), '');
+});
+
+test('portal next actions stop before CV upload', () => {
+  const action = buildNextAction('ready_manual_review', 'official_portal').toLowerCase();
+  assert.match(action, /indicar/);
+  assert.match(action, /antes do upload/);
+  assert.doesNotMatch(action, /anexar/);
 });
