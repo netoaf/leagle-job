@@ -99,7 +99,7 @@ for (const { name, allowFail } of scripts) {
 
 // ── 3. DASHBOARD BUILD ──────────────────────────────────────────
 
-const unitTests = run('node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs tests/security-scan-contract.test.mjs tests/localized-mode-contract.test.mjs');
+const unitTests = run('node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs tests/security-scan-contract.test.mjs tests/localized-mode-contract.test.mjs tests/text-utils.test.mjs');
 if (unitTests !== null) {
   pass('Network safety and job-pipeline foundation tests pass');
 } else {

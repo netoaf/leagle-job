@@ -14,7 +14,7 @@
     "test:email-cv": "node --test tests/email-drafts-cv-selection.test.mjs",
     "test:scoring": "node --test tests/job-scoring-service.test.mjs",
     "test:gmail": "node --test tests/gmail-adapter.test.mjs tests/gmail-sync.test.mjs",
-    "test:unit": "node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/create-gmail-draft.test.mjs tests/gmail-adapter.test.mjs tests/gmail-sync.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs tests/net-empregos-search.test.mjs tests/prepare-portal-application.test.mjs tests/verify-pipeline-reconciliation.test.mjs tests/security-scan-contract.test.mjs tests/localized-mode-contract.test.mjs",
+    "test:unit": "node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/create-gmail-draft.test.mjs tests/gmail-adapter.test.mjs tests/gmail-sync.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs tests/net-empregos-search.test.mjs tests/prepare-portal-application.test.mjs tests/verify-pipeline-reconciliation.test.mjs tests/security-scan-contract.test.mjs tests/localized-mode-contract.test.mjs tests/text-utils.test.mjs",
     "test:reconciliation": "node --test tests/verify-pipeline-reconciliation.test.mjs",
     "normalize": "node normalize-statuses.mjs",
     "dedup": "node dedup-tracker.mjs",
