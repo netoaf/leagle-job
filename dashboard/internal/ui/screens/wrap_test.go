@@ -81,6 +81,35 @@ func TestPortalKeyTargetsSelectedApplication(t *testing.T) {
 	if !ok || msg.Action.ID != "prepare_application" || msg.Action.ApplicationID != 72 {
 		t.Fatalf("unexpected portal action: %#v", msg)
 	}
+	_, description, enabled := applicationButton(apps[0])
+	if !enabled || !strings.Contains(strings.ToLower(description), "indica") || strings.Contains(strings.ToLower(description), "anexa") {
+		t.Fatalf("portal action must stop before upload, got %q", description)
+	}
+}
+
+func TestWriteActionRequiresSecondEnterConfirmation(t *testing.T) {
+	m := NewPipelineModel(theme.NewTheme("catppuccin-mocha"), nil, model.PipelineMetrics{}, ".", 120, 40)
+
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	if cmd != nil || !m.actionPicker {
+		t.Fatal("expected action picker to open without running a command")
+	}
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd != nil || !m.actionConfirm || !m.actionPicker {
+		t.Fatal("expected first Enter on a write action to request confirmation")
+	}
+
+	m, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd == nil || m.actionPicker || !m.actionRunning {
+		t.Fatal("expected second Enter to run the confirmed action")
+	}
+	msg, ok := cmd().(PipelineRunActionMsg)
+	if !ok || msg.Action.ID != "search_pt_write" {
+		t.Fatalf("unexpected confirmed action: %#v", msg)
+	}
 }
 
 func TestPrimaryHelpOnlyShowsNecessaryKeys(t *testing.T) {
