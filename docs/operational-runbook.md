@@ -35,6 +35,35 @@ Este comando agrega:
 
 Se este comando falhar, corrigir antes de procurar vagas novas.
 
+## Saude das fontes e cobertura do mercado
+
+Estes sao dois sinais diferentes:
+
+- **Saude das fontes** indica se a URL/configuracao de uma fonte publica
+  respondeu recentemente. Nao prova que existam vagas relevantes.
+- **Cobertura** indica quantas URLs qualificadas foram realmente capturadas
+  nos ultimos sete dias para LinkedIn, Indeed, IEFP, ITJobs e Net-Empregos.
+  Uma fonte saudavel nao aumenta esta contagem por si so.
+
+Antes de tratar uma pesquisa como atual, ou antes de escrever vagas novas no
+dashboard, atualizar e rever ambos os sinais:
+
+```powershell
+npm.cmd run portals:audit
+npm.cmd run coverage:audit
+```
+
+Se a cobertura estiver `DEGRADED`, continua a ser seguro fazer uma pesquisa em
+modo preview, mas nao afirmes que o mercado esta coberto. Para uma URL publica
+que viste manualmente, usa o unico fluxo de captura/revisao existente:
+
+```powershell
+npm.cmd run evaluate-url:write -- --url "https://exemplo.pt/vaga"
+```
+
+Nao substituir este passo por login automatico, scraping autenticado ou uma
+candidatura. A URL deve ser publica, recente e revista antes de qualquer acao.
+
 ## Analise de segredos
 
 Antes de partilhar uma branch ou criar um pacote, executar:
@@ -61,25 +90,34 @@ $env:GOBIN = "$PWD\tools\gitleaks"
 npm.cmd run jobfinder:health
 ```
 
-2. Procurar vagas novas Portugal-first sem escrever:
+2. Atualizar saude das fontes e confirmar a cobertura, pelo menos uma vez por
+   semana e sempre antes de uma escrita importante:
+
+```powershell
+npm.cmd run portals:audit
+npm.cmd run coverage:audit
+```
+
+3. Procurar vagas novas Portugal-first sem escrever:
 
 ```powershell
 npm.cmd run jobfinder:new:dry-run -- --limit 80
 ```
 
-3. Se houver vagas boas, escrever poucas de cada vez:
+4. Se houver vagas boas e os sinais anteriores forem conhecidos, escrever
+   poucas de cada vez:
 
 ```powershell
 npm.cmd run jobfinder:new -- --limit 80 --write-limit 5
 ```
 
-4. Validar dashboard:
+5. Validar dashboard:
 
 ```powershell
 npm.cmd run verify
 ```
 
-5. Abrir o dashboard:
+6. Abrir o dashboard:
 
 ```powershell
 .\dashboard\career-dashboard-live.exe

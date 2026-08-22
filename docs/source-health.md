@@ -41,6 +41,23 @@ The full command writes:
 data/source-health.tsv
 ```
 
+## Health is not coverage
+
+`portals:audit` answers whether configured public sources can currently be
+read by an existing adapter or generic fallback. It does not prove that the
+pipeline has recent, relevant vacancies from every manual job board.
+
+Run the separate coverage check after a health refresh:
+
+```bash
+npm run coverage:audit
+```
+
+Coverage reads the recent qualified URLs in `data/scan-history.tsv` for
+LinkedIn, Indeed, IEFP Online, ITJobs and Net-Empregos. A `healthy` source does
+not increase coverage by itself; a `DEGRADED` result is a visibility warning,
+not proof that the source is closed.
+
 Generate a safe cleanup plan from the latest source-health data:
 
 ```bash
