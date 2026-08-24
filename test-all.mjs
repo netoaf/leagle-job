@@ -99,7 +99,7 @@ for (const { name, allowFail } of scripts) {
 
 // ── 3. DASHBOARD BUILD ──────────────────────────────────────────
 
-const unitTests = run('node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs tests/security-scan-contract.test.mjs tests/localized-mode-contract.test.mjs tests/text-utils.test.mjs');
+const unitTests = run('node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs tests/portal-audit-persistence.test.mjs tests/security-scan-contract.test.mjs tests/localized-mode-contract.test.mjs tests/text-utils.test.mjs');
 if (unitTests !== null) {
   pass('Network safety and job-pipeline foundation tests pass');
 } else {
@@ -311,7 +311,12 @@ const scanExtensions = ['md', 'yml', 'html', 'mjs', 'sh', 'go', 'json'];
 const allowedFiles = ['README.md', 'README.es.md', 'LICENSE', 'CITATION.cff', 'CONTRIBUTING.md',
   'package.json', '.github/FUNDING.yml', '.github/ISSUE_TEMPLATE/', 'CLAUDE.md', 'go.mod',
   'dashboard/internal/ui/screens/pipeline.go', 'test-all.mjs'];
-const scannedFiles = textFiles().filter(file => scanExtensions.includes(file.split('.').pop().toLowerCase()));
+const publishableFiles = hasProjectGitMetadata
+  ? new Set((run('git ls-files --cached --others --exclude-standard') || '').split(/\r?\n/).filter(Boolean))
+  : null;
+const scannedFiles = textFiles()
+  .filter(file => scanExtensions.includes(file.split('.').pop().toLowerCase()))
+  .filter(file => !publishableFiles || publishableFiles.has(file.replace(/\\/g, '/')));
 
 let leakFound = false;
 for (const pattern of leakPatterns) {
