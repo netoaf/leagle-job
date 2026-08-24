@@ -15,3 +15,15 @@ test('release version is consistent across package manifests', () => {
   assert.equal(packageLock.version, releaseVersion);
   assert.equal(packageLock.packages[''].version, releaseVersion);
 });
+
+test('release-candidate documentation matches the verified checkout', () => {
+  const architecture = readFileSync(join(projectRoot, 'docs', 'ARCHITECTURE.md'), 'utf8');
+  const currentStatus = readFileSync(join(projectRoot, 'docs', 'CURRENT-STATUS.md'), 'utf8');
+  const releaseNotes = readFileSync(join(projectRoot, 'docs', 'RELEASE-NOTES-V1.4.1.md'), 'utf8');
+
+  assert.match(architecture, /`lib\/network\/safe-fetch\.mjs`/);
+  assert.doesNotMatch(architecture, /`lib\/safe-fetch\.mjs`/);
+  assert.match(currentStatus, /\| Node unit suite \| 123 passing, 0 failing \|/);
+  assert.match(releaseNotes, /^Status: release candidate$/m);
+  assert.doesNotMatch(releaseNotes, /^Release date:/m);
+});

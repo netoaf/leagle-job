@@ -1,12 +1,14 @@
 # Leagle Job v1.4.1
 
-Release date: 2026-08-22
+Status: release candidate
+
+Candidate verified: 2026-08-24
 
 ## Outcome
 
-This maintenance release makes the local security scan reliable in isolated
-Windows checkouts and updates the engineering priorities to distinguish a
-validated local baseline from an intentionally published release.
+This maintenance candidate protects canonical source evidence during broad
+network outages, makes the local security scan reliable in isolated Windows
+checkouts and reconciles the documented release state with verified output.
 
 ## Improvements
 
@@ -15,16 +17,25 @@ validated local baseline from an intentionally published release.
   configuration.
 - A Windows contract test proves that the security scan provides the scoped
   trust value to its scanner process.
-- Current-status documentation now prioritises a sanitized package, explicit
-  source-health versus market-coverage evidence, and recoverable persistence.
+- Source-health writes now use same-directory atomic replacement. A complete
+  audit with at least 20 checks and at least 80% environment-level transport
+  failures preserves the canonical TSV, writes only preview evidence and exits
+  non-zero.
+- The canonical-path guard is case-insensitive on Windows, so alternate path
+  casing cannot bypass the environment-failure protection.
+- Product leak/path checks inspect the publishable Git surface while separate
+  privacy gates continue to require local User Layer paths to remain ignored.
+- Current-status and architecture documentation now match the release
+  candidate's verified commands and file layout.
 
 ## Verification
 
 - Product suite: 98 passed, 0 failed, 0 warnings.
+- Node unit suite: 123 passed, 0 failed.
 - Product health: 15/15 checks passed.
-- Pipeline reconciliation: 0 errors, 0 warnings.
+- Pipeline reconciliation: 0 errors, 0 warnings across 135 tracker entries.
 - Production dependency audit: 0 vulnerabilities.
-- Redacted Gitleaks scan: 16 Git commits scanned, no leaks found.
+- Redacted Gitleaks scan: 23 Git commits scanned, no leaks found.
 
 ## Privacy and safety
 
@@ -32,4 +43,5 @@ validated local baseline from an intentionally published release.
   configuration is included in the package.
 - No email send, portal submission, CV upload or automatic application action
   is added by this release.
-- This release is local until a user deliberately chooses to publish it.
+- This candidate remains local until a user deliberately authorizes its
+  publication through a reviewed pull request.

@@ -145,7 +145,7 @@ The system must not:
 - upload CVs automatically.
 
 All direct HTTP(S) requests made by Leagle Job scripts pass through
-`lib/safe-fetch.mjs`. The boundary rejects local/private addresses,
+`lib/network/safe-fetch.mjs`. The boundary rejects local/private addresses,
 pins the Node connection to a validated public DNS result, revalidates
 redirects and enforces request, response, redirect, port and timeout budgets.
 Playwright fallbacks use the companion network guard, block WebSockets and run

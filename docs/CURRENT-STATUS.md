@@ -1,6 +1,6 @@
 # Current Leagle Job Status
 
-Last reconciled: 2026-08-22
+Last reconciled: 2026-08-24
 
 ## Scope of this document
 
@@ -27,6 +27,8 @@ unless that exact revision contains it.
   public-address checks, redirect revalidation and response budgets.
 - Repeatable redacted full-history secret scan through the locally ignored
   Gitleaks binary or an explicitly configured executable.
+- Atomic source-health replacement with an environment-failure guard. A broad
+  network outage cannot replace the last usable canonical source snapshot.
 - Optional Codex/Gmail integration. When explicitly enabled and every gate
   passes, it may create an unsent Gmail draft with its deterministic local CV
   attachment. It never sends email or submits an application.
@@ -35,16 +37,17 @@ unless that exact revision contains it.
 
 ## Current validation evidence
 
-The local baseline candidate was last checked on 2026-08-22 with:
+The local release candidate was last checked on 2026-08-24 with:
 
 | Gate | Result |
 | --- | --- |
-| Node unit suite | 114 passing, 0 failing |
+| Node unit suite | 123 passing, 0 failing |
 | Product health | 15/15 checks passing |
-| Pipeline reconciliation | 0 errors, 0 warnings across 126 tracker entries |
+| Product suite | 98 passing, 0 failing, 0 warnings |
+| Pipeline reconciliation | 0 errors, 0 warnings across 135 tracker entries |
 | Dependency audit | no known production vulnerabilities reported |
-| Secret scan | redacted full Git history scan passed with no leaks |
-| Whitespace check | no whitespace errors; some CRLF/LF normalization warnings remain |
+| Secret scan | 23 reachable Git commits scanned with no leaks |
+| Whitespace check | no whitespace errors |
 
 These results prove the local deterministic checks. They do not prove that
 external job boards, Codex authentication, a Gmail connector or a browser
@@ -57,8 +60,9 @@ session are available at a later time.
 - LinkedIn, Indeed and IEFP are not all first-class executable Node scanners;
   use authenticated/manual discovery only as supplemental, user-controlled
   input and verify the official vacancy before any action.
-- The operational store is currently Markdown, TSV and JSONL. It has integrity
-  checks but no database transaction spanning every file write.
+- The operational store is currently Markdown, TSV and JSONL. Source-health
+  replacement is atomic; the remaining stores have integrity checks but no
+  transaction spanning every file write.
 - Core search, ranking, dashboard and tracking work without Codex. Advanced
   Gmail drafting and portal preparation require a compatible authenticated
   Codex/browser environment and fail closed when it is unavailable.
@@ -73,9 +77,10 @@ session are available at a later time.
 
 ## Next engineering priorities
 
-1. Repair only verified high-value Portugal-first source URLs and keep source
-   health distinct from recent manual-board coverage.
-2. Consolidate the beginner setup, daily scan and recovery documentation so a
-   user can operate without Codex or code edits.
-3. Introduce an atomic persistence boundary before any future database
-   migration or additional automation.
+1. Record comparable source runs and alert only after three consecutive
+   source-specific failures; never count a broad environment outage as 184
+   independent failures.
+2. Split source reporting into acquisition, valid capture and candidate fit so
+   a working source with no current match is not reported as broken.
+3. Extend the tested atomic persistence boundary one store at a time before
+   considering any database migration or additional automation.
