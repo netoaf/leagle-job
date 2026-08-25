@@ -83,6 +83,7 @@ const scripts = [
   { name: 'normalize-statuses.mjs --dry-run', expectExit: 0 },
   { name: 'dedup-tracker.mjs --dry-run', expectExit: 0 },
   { name: 'merge-tracker.mjs --dry-run', expectExit: 0 },
+  { name: 'source-reliability.mjs', expectExit: 0 },
   { name: 'update-system.mjs check', expectExit: 0 },
 ];
 
@@ -99,7 +100,7 @@ for (const { name, allowFail } of scripts) {
 
 // ── 3. DASHBOARD BUILD ──────────────────────────────────────────
 
-const unitTests = run('node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs');
+const unitTests = run('node --test tests/safe-fetch.test.mjs tests/eightfold-adapter.test.mjs tests/job-pipeline-foundation.test.mjs tests/cv-selector.test.mjs tests/email-drafts-cv-selection.test.mjs tests/job-scoring-service.test.mjs tests/verify-and-draft.test.mjs tests/application-actions.test.mjs tests/source-coverage-audit.test.mjs tests/source-run-memory.test.mjs tests/portal-audit-persistence.test.mjs tests/security-scan-contract.test.mjs tests/localized-mode-contract.test.mjs tests/text-utils.test.mjs');
 if (unitTests !== null) {
   pass('Network safety and job-pipeline foundation tests pass');
 } else {
@@ -108,12 +109,15 @@ if (unitTests !== null) {
 
 if (!QUICK) {
   console.log('\n3. Dashboard build');
-  const goVersion = run('go version');
+  const bundledGo = join(ROOT, 'tools', 'go', 'bin', process.platform === 'win32' ? 'go.exe' : 'go');
+  const goCommand = existsSync(bundledGo) ? `"${bundledGo}"` : 'go';
+  const goEnv = { ...process.env, GOCACHE: join(ROOT, 'dashboard', '.gocache') };
+  const goVersion = run(`${goCommand} version`, { env: goEnv });
   if (goVersion === null) {
     warn('Dashboard build skipped (Go is optional and not installed)');
   } else {
     const dashboardOutput = join(tmpdir(), process.platform === 'win32' ? 'career-dashboard-test.exe' : 'career-dashboard-test');
-    const goBuild = run(`go build -o "${dashboardOutput}" .`, { cwd: join(ROOT, 'dashboard') });
+    const goBuild = run(`${goCommand} build -o "${dashboardOutput}" .`, { cwd: join(ROOT, 'dashboard'), env: goEnv });
     if (goBuild !== null) {
       pass('Dashboard compiles');
     } else {
@@ -235,11 +239,15 @@ const privacyIgnoreProbes = [
   'modes/_profile.md',
   'portals.yml',
   'data/applications.md',
+  'data/source-runs.tsv',
   'reports/source-health-preview.tsv',
   'output/cv.pdf',
   'jds/job.md',
   'interview-prep/story-bank.md',
   'batch/tracker-additions/merged/001.tsv',
+  'backups/private-email-drafts.tsv',
+  'docs/GMAIL-DRAFT-AUDIT-2099-01-01.md',
+  'docs/superpowers/plans/private-plan.md',
 ];
 const missingIgnoreCoverage = hasProjectGitMetadata
   ? privacyIgnoreProbes.filter(f => run(`git check-ignore --no-index -- "${f}"`) === null)
@@ -250,6 +258,27 @@ if (!hasProjectGitMetadata && fileExists('.gitignore')) {
   pass(`Privacy ignore coverage (${privacyIgnoreProbes.length} probes)`);
 } else {
   fail(`Privacy ignore gaps (${missingIgnoreCoverage.length} path(s))`);
+}
+
+const packageScript = readFile('scripts/create-package.ps1');
+const packageOperationalNoteExclusions = [
+  '"backups"',
+  'docs\\superpowers',
+  '^docs\\\\.*-AUDIT-.*\\.md$',
+];
+const missingPackageOperationalNoteExclusions = packageOperationalNoteExclusions.filter(
+  marker => !packageScript.includes(marker),
+);
+if (missingPackageOperationalNoteExclusions.length === 0) {
+  pass('Sanitized package excludes local operational notes');
+} else {
+  fail(`Sanitized package may include local operational notes (${missingPackageOperationalNoteExclusions.length} exclusion(s) missing)`);
+}
+
+if (packageScript.includes('data\\source-runs.tsv') && packageScript.includes('timestamp`trun_id`tcontract_version')) {
+  pass('Sanitized package bootstraps a neutral source-run ledger');
+} else {
+  fail('Sanitized package is missing the neutral source-run ledger contract');
 }
 
 const trackedDashboardBinaries = trackedFiles.filter(
@@ -290,7 +319,12 @@ const scanExtensions = ['md', 'yml', 'html', 'mjs', 'sh', 'go', 'json'];
 const allowedFiles = ['README.md', 'README.es.md', 'LICENSE', 'CITATION.cff', 'CONTRIBUTING.md',
   'package.json', '.github/FUNDING.yml', '.github/ISSUE_TEMPLATE/', 'CLAUDE.md', 'go.mod',
   'dashboard/internal/ui/screens/pipeline.go', 'test-all.mjs'];
-const scannedFiles = textFiles().filter(file => scanExtensions.includes(file.split('.').pop().toLowerCase()));
+const publishableFiles = hasProjectGitMetadata
+  ? new Set((run('git ls-files --cached --others --exclude-standard') || '').split(/\r?\n/).filter(Boolean))
+  : null;
+const scannedFiles = textFiles()
+  .filter(file => scanExtensions.includes(file.split('.').pop().toLowerCase()))
+  .filter(file => !publishableFiles || publishableFiles.has(file.replace(/\\/g, '/')));
 
 let leakFound = false;
 for (const pattern of leakPatterns) {
@@ -354,9 +388,8 @@ console.log('\n8. CLAUDE.md integrity');
 
 const claude = readFile('CLAUDE.md');
 const requiredSections = [
-  'Data Contract', 'Update Check', 'Ethical Use',
-  'Offer Verification', 'Canonical States', 'TSV Format',
-  'First Run', 'Onboarding',
+  'Product boundary', 'Data contract', 'Session checks',
+  'Canonical operational model', 'External boundaries', 'Verification',
 ];
 
 for (const section of requiredSections) {

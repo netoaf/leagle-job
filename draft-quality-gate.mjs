@@ -79,6 +79,10 @@ const DEVELOPING_TERMS = [
   'nextjs',
   'cybersecurity',
   'ciberseguranca',
+  'react',
+  'postgresql',
+  'supabase',
+  'neon',
 ];
 
 export function runDraftQualityGate(options = {}) {
@@ -112,9 +116,11 @@ function validatePackFile(root, file, configs) {
   }
 
   validatePackSafety(content, issues);
-  validateDraftPresence(draft, issues);
+  validateExcludedProjects(content, configs, issues);
+  const requiresEmailDraft = applicationChannelRequiresEmail(metadata.application_channel);
+  if (requiresEmailDraft) validateDraftPresence(draft, issues);
 
-  if (draft.trim()) {
+  if (requiresEmailDraft && draft.trim()) {
     validateLanguage(draft, content, metadata, issues);
     validateSeniority(draft, issues);
     validateForbiddenClaims(draft, configs, issues);
@@ -140,6 +146,20 @@ function validatePackSafety(content, issues) {
   }
   if (!text.includes('do not upload cv automatically')) {
     addIssue(issues, 'error', 'missing_no_auto_upload_rule', 'Pack does not clearly block automatic CV upload.');
+  }
+}
+
+function validateExcludedProjects(content, configs, issues) {
+  const excluded = [
+    ...asArray(configs.profile?.projects?.excluded),
+    ...asArray(configs.candidate_context?.excluded_projects),
+  ];
+  const normalized = normalizeText(content);
+  for (const project of excluded) {
+    const rawName = typeof project === 'string' ? project : project?.name;
+    const name = normalizeText(rawName);
+    if (!name || !normalized.includes(name)) continue;
+    addIssue(issues, 'error', 'excluded_project', `Excluded project appears in the operational pack: ${rawName}.`);
   }
 }
 
@@ -249,10 +269,18 @@ function validateUnconfirmedLinksAndContact(draft, configs, issues) {
 
 function validateUnconfirmedOrBroadClaims(draft, configs, issues) {
   const confirmedSkills = collectConfirmedSkills(configs).map(normalizeText);
+  const unconfirmedSkills = asArray(configs.candidate_context?.unconfirmed_skills).map(normalizeText);
 
   for (const line of draftLines(draft)) {
     const normalized = normalizeText(line);
     if (!looksLikeCandidateClaim(normalized)) continue;
+
+    for (const term of unconfirmedSkills) {
+      const index = skillTermIndex(normalized, term);
+      if (index < 0) continue;
+      if (hasLearningContext(normalized) || hasNegationNear(normalized, index)) continue;
+      addIssue(issues, 'error', 'unconfirmed_skill_claim', `Unconfirmed technology is claimed as practical experience: "${line}".`);
+    }
 
     for (const term of DEVELOPING_TERMS) {
       if (!normalized.includes(normalizeText(term))) continue;
@@ -388,7 +416,14 @@ function extractMetadata(content) {
     role: metadataValue(content, 'Role'),
     score: metadataValue(content, 'Score'),
     status: metadataValue(content, 'Status'),
+    application_channel: metadataValue(content, 'Application Channel'),
   };
+}
+
+function applicationChannelRequiresEmail(channel) {
+  const normalized = normalizeText(channel || '');
+  if (!normalized || normalized === 'unknown' || normalized === 'a confirmar') return true;
+  return normalized.includes('email');
 }
 
 function metadataValue(content, key) {
@@ -440,6 +475,12 @@ function looksLikeCandidateClaim(normalizedLine) {
 
 function hasLearningContext(normalizedLine) {
   return /\b(aprender|learning|interesse|interested|curiosity|curiosidade|a confirmar|preferencial|preferred|gap|actively learning|em aprendizagem|quero aprender)\b/.test(normalizedLine);
+}
+
+function skillTermIndex(normalizedLine, normalizedTerm) {
+  if (!normalizedTerm) return -1;
+  const match = normalizedLine.match(new RegExp(`(^|[^a-z0-9])${escapeRegExp(normalizedTerm)}($|[^a-z0-9])`, 'i'));
+  return match ? match.index + match[1].length : -1;
 }
 
 function hasNegationNear(normalizedLine, index) {

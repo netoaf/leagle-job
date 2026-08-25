@@ -7,6 +7,7 @@ import { loadJobFinderConfigs } from './lib/config-loader.mjs';
 import { loadApplications, selectApplications } from './lib/applications-store.mjs';
 import { selectCvForApplication } from './lib/cv-selector.mjs';
 import { normalizeText, normalizeWhitespace, slugify, todayISO } from './lib/job-normalizer.mjs';
+import { applicationFacingRole } from './scan-and-rank.mjs';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TOP = 10;
@@ -77,8 +78,11 @@ function buildPackMarkdown(application, report, configs, cvSelection) {
   const redFlags = sectionOrFallback(sections, ['Red Flags', 'Red flags'], '- a confirmar');
   const hardBlockers = sectionOrFallback(sections, ['Hard Blockers', 'Hard blockers'], '- a confirmar');
   const cvAdjustments = sanitizePrivateProjectName(sectionOrFallback(sections, ['CV Adjustments'], '- Manter posicionamento junior/estagio.\n- Nao inventar dados.'));
-  const emailDraft = sanitizePrivateProjectName(sectionOrFallback(sections, ['Rascunho De Email', 'Rascunho de Email', 'Email Draft'], 'a confirmar'));
+  const rawEmailDraft = sanitizePrivateProjectName(sectionOrFallback(sections, ['Rascunho De Email', 'Rascunho de Email', 'Email Draft'], 'a confirmar'));
+  const targetedRole = applicationFacingRole({ title: role, description: cleanReport });
+  const emailDraft = targetedRole === role ? rawEmailDraft : rawEmailDraft.split(role).join(targetedRole);
   const nextAction = sectionOrFallback(sections, ['Next Action'], 'Rever manualmente antes de enviar.');
+  const applicationChannel = extractApplicationChannel(application.notes);
   const confirmations = buildConfirmationList(cleanReport, application);
   const privacyRules = asArray(rules.privacy?.deny).slice(0, 8);
 
@@ -90,6 +94,7 @@ function buildPackMarkdown(application, report, configs, cvSelection) {
 **Role:** ${role}
 **Score:** ${application.score}
 **Status:** ${status}
+**Application Channel:** ${applicationChannel}
 **Report:** ${application.report_path || 'a confirmar'}
 **Selected CV PDF:** ${selectedCvPdf || 'a confirmar'} (${cvSelection.status})
 **CV preselection:** ${cvSelection.language_label} / ${cvSelection.variant_label}
@@ -161,6 +166,11 @@ ${privacyRules.length ? privacyRules.map((item) => `- Do not include: ${item}.`)
 
 ${nextAction.trim()}
 `;
+}
+
+function extractApplicationChannel(notes = '') {
+  const marker = String(notes).match(/\[channel:([a-z0-9_-]+)\]/i);
+  return marker?.[1] || 'unknown';
 }
 
 function extractReportSections(report) {

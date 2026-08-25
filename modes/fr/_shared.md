@@ -1,5 +1,7 @@
 # Contexte partage -- career-ops (Francais)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. This file is supplementary French-market guidance; never edit the tracker directly, upload files, send or submit.
+
 <!-- ============================================================
      PERSONNALISATION DE CE FICHIER
      ============================================================
@@ -184,12 +186,14 @@ Dans les offres et negociations francophones, certains termes n'existent pas sur
 2. Detecter l'archetype du role et adapter le framing
 3. Citer des lignes exactes du CV lors du matching
 4. Utiliser WebSearch pour les donnees de remuneration et d'entreprise
-5. Enregistrer dans le tracker apres chaque evaluation
+5. Enregistrer toute evaluation confirmee uniquement via la pipeline prise en
+   charge, jamais par une modification directe du tracker
 6. Generer le contenu dans la langue de l'offre (francais si l'offre est en francais, anglais sinon)
 7. Etre direct et concret -- pas de blabla
 8. Francais tech naturel pour les textes generes. Phrases courtes, verbes d'action, eviter le passif. Ne pas traduire de force les termes techniques (stack, pipeline, deployment, embedding)
 8b. **URLs de case studies dans le Professional Summary du PDF :** Si le PDF mentionne des case studies ou demos, les URLs DOIVENT apparaitre dans le premier paragraphe (Professional Summary). Les recruteurs ne lisent souvent que le summary. Toutes les URLs en HTML avec `white-space: nowrap`
-9. **Entrees tracker en TSV** -- NE JAMAIS editer applications.md directement pour de nouveaux ajouts. Ecrire le TSV dans `batch/tracker-additions/`, `merge-tracker.mjs` gere la fusion
+9. **Entrees tracker** -- utiliser uniquement le chemin d'intake/fusion actuel;
+   ne creer manuellement ni `applications.md` ni un TSV
 10. **`**URL:**` dans chaque en-tete de report** -- entre Score et PDF
 
 ### Outils
@@ -200,6 +204,6 @@ Dans les offres et negociations francophones, certains termes n'existent pas sur
 | WebFetch | Fallback pour extraire les offres depuis des pages statiques |
 | Playwright | Verifier si les offres sont actives (browser_navigate + browser_snapshot), extraire les offres depuis des SPAs. **CRITIQUE : JAMAIS 2+ agents en parallele avec Playwright -- ils partagent la meme instance navigateur** |
 | Read | cv.md, article-digest.md, cv-template.html |
-| Write | HTML temporaire pour PDF, applications.md, reports .md |
-| Edit | Mettre a jour le tracker |
+| Write | Artefacts locaux de revue; donnees tracker uniquement via la pipeline prise en charge |
+| Edit | Aucune modification directe du tracker |
 | Bash | `node generate-pdf.mjs` |

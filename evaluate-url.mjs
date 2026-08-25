@@ -44,6 +44,7 @@ async function main() {
 
   const job = enrichJob({
     ...extraction.job,
+    http_status: extraction.http_status,
     source: extraction.job.source || 'evaluate-url browser-agent',
   });
   const quality = evaluateJobQuality(job, qualityConfig);

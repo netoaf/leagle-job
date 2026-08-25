@@ -200,7 +200,9 @@ function localDraftNotes(status) {
   if (status === 'blocked_missing_draft') return 'Report has no usable email draft.';
   if (status === 'blocked_missing_report') return 'Report file missing; regenerate or repair report link.';
   if (status === 'blocked_missing_cv') return 'Selected CV is missing; repair the CV library before use.';
-  if (status === 'blocked_unverified_vacancy') return 'Open the official vacancy and add a recent [verified:YYYY-MM-DD] tracker marker.';
+  if (status === 'blocked_unverified_vacancy') {
+    return 'Open the official vacancy with Playwright immediately before drafting; record fresh live-verified, live-method and live-state markers.';
+  }
   return 'Local draft only; review pack and draft quality before Gmail draft.';
 }
 
@@ -221,6 +223,8 @@ This is a local preparation artifact. It does not create a Gmail draft, does not
 - Do not send automatically.
 - Do not upload CV automatically.
 - Confirm recipient before creating a Gmail draft.
+- Re-open the official vacancy with Playwright immediately before any external Gmail draft.
+- A search result, cached page, redirect, login page or old verification is not proof that the vacancy is active.
 - Run \`npm.cmd run draft-quality\` before using this draft.
 - Keep uncertain details as \`a confirmar\`.
 
@@ -231,7 +235,7 @@ Subject: ${parsed.subject || 'a confirmar'}
 Planned attachment: ${relativePath(root, plannedAttachment) || 'a confirmar'}
 CV preselection: ${cvSelection?.language_label || 'a confirmar'} / ${cvSelection?.variant_label || 'a confirmar'}
 CV selection reason: ${cvSelection?.variant_reason || 'a confirmar'}
-Vacancy verification: ${vacancyVerification.ok ? `verified ${vacancyVerification.date}` : vacancyVerification.reason}
+Vacancy verification: ${vacancyVerification.ok ? `live verified ${vacancyVerification.timestamp} via ${vacancyVerification.method}` : vacancyVerification.reason}
 Attachment approval: ${emailConfig.attachments?.require_explicit_attachment_approval ? 'required' : 'a confirmar'}
 
 ## Body
@@ -253,24 +257,35 @@ function sanitizePrivateProjectName(value) {
 
 function verifyVacancy(application, emailConfig) {
   if (!emailConfig.safety?.require_vacancy_verified) {
-    return { ok: true, date: '', reason: 'not required by policy' };
+    return { ok: true, timestamp: '', method: '', reason: 'not required by policy' };
   }
-  const match = String(application.notes || '').match(/\[verified:(\d{4}-\d{2}-\d{2})\]/i);
-  if (!match) {
-    return { ok: false, date: '', reason: 'missing [verified:YYYY-MM-DD] tracker marker' };
+  const notes = String(application.notes || '');
+  const timestampMatch = notes.match(/\[live-verified:([^\]]+)\]/i);
+  const methodMatch = notes.match(/\[live-method:([^\]]+)\]/i);
+  const stateMatch = notes.match(/\[live-state:([^\]]+)\]/i);
+  if (!timestampMatch) {
+    return { ok: false, timestamp: '', method: '', reason: 'missing [live-verified:ISO_TIMESTAMP] tracker marker' };
   }
-  const date = match[1];
-  const verifiedAt = new Date(`${date}T00:00:00Z`);
-  const today = new Date(`${todayISO()}T00:00:00Z`);
-  const ageDays = Math.floor((today - verifiedAt) / 86400000);
-  const maxAge = Number(emailConfig.safety?.vacancy_verification_max_age_days ?? 7);
-  if (!Number.isFinite(verifiedAt.getTime()) || ageDays < 0) {
-    return { ok: false, date, reason: 'invalid or future vacancy verification date' };
+  const timestamp = timestampMatch[1];
+  const method = normalizeText(methodMatch?.[1] || '');
+  const state = normalizeText(stateMatch?.[1] || '');
+  const requiredMethod = normalizeText(emailConfig.safety?.live_verification_method || 'playwright');
+  if (method !== requiredMethod) {
+    return { ok: false, timestamp, method, reason: `live verification method must be ${requiredMethod}` };
   }
-  if (ageDays > maxAge) {
-    return { ok: false, date, reason: `vacancy verification is ${ageDays} days old; maximum is ${maxAge}` };
+  if (state !== 'active') {
+    return { ok: false, timestamp, method, reason: `live vacancy state is ${state || 'missing'}; required state is active` };
   }
-  return { ok: true, date, reason: `verified ${ageDays} days ago` };
+  const verifiedAt = new Date(timestamp);
+  const ageMinutes = Math.floor((Date.now() - verifiedAt.getTime()) / 60000);
+  const maxAge = Number(emailConfig.safety?.live_verification_max_age_minutes ?? 60);
+  if (!Number.isFinite(verifiedAt.getTime()) || ageMinutes < -5) {
+    return { ok: false, timestamp, method, reason: 'invalid or future live verification timestamp' };
+  }
+  if (ageMinutes > maxAge) {
+    return { ok: false, timestamp, method, reason: `live verification is ${ageMinutes} minutes old; maximum is ${maxAge}` };
+  }
+  return { ok: true, timestamp, method, reason: `live verified ${Math.max(0, ageMinutes)} minutes ago` };
 }
 
 function privateProjectNamePattern() {

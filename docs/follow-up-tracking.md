@@ -33,6 +33,12 @@ often, so it lives in a TSV file keyed by application/report number.
 - `next_action`
 - `notes`
 - `updated_at`
+- `gmail_thread_id`
+- `last_message_id`
+- `followup_draft_id`
+- `response_state`
+- `recommendation`
+- `synced_at`
 
 ## Dashboard Behavior
 
@@ -43,6 +49,16 @@ When a status changes in the dashboard:
 - `Interview`: sets `last_contact`, `followup_due` +1 day and an interview prep action.
 - `Offer`: sets `last_contact`, `followup_due` +2 days and an offer review action.
 - `Skip`, `Rejected`, `Discarded`: closes follow-up.
+
+When Gmail synchronization detects activity:
+
+- a sent application becomes `Applied` and receives a due date automatically;
+- a human reply becomes `Responded` and receives a classified next-step
+  recommendation;
+- an automated acknowledgement is recorded without being treated as a human
+  response;
+- a due no-response follow-up may create one unsent threaded Gmail draft after
+  Codex review.
 
 The dashboard preview shows follow-up date and next action for the selected job.
 
@@ -60,7 +76,19 @@ Initialize missing active rows:
 npm.cmd run followups:init
 ```
 
+Build read-only sent/reply searches:
+
+```powershell
+npm.cmd run gmail-sync
+```
+
+List due automatic follow-up draft requests:
+
+```powershell
+npm.cmd run gmail-followups
+```
+
 ## Rule
 
-Follow-up tracking helps you remember what to do next. It does not send emails,
-messages or applications automatically.
+Follow-up tracking may create an unsent Gmail draft automatically. It never
+sends emails, messages or applications. Sending always requires the user.

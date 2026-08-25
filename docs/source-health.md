@@ -41,6 +41,39 @@ The full command writes:
 data/source-health.tsv
 ```
 
+## Health, run memory and coverage are different
+
+`portals:audit` answers whether configured public sources can currently be
+read by an existing adapter or generic fallback. It does not prove that the
+pipeline has recent, relevant vacancies from every manual job board.
+
+The canonical scan also keeps a sanitized, local execution ledger:
+
+```bash
+npm run sources:status
+```
+
+`data/source-runs.tsv` records comparable source attempts by profile and mode.
+It distinguishes a source failure, zero matching acquisition, capture gap,
+jobs with no candidate fit and healthy production. Raw errors, URLs and job or
+candidate content are not stored. Three consecutive failures create a high
+alert; three zero acquisitions create a medium coverage warning. The latter
+does not mean the portal is broken and may simply mean no matching openings.
+
+Dry-run and replayed inputs do not write this ledger. A broad local network
+failure does not advance any source streak.
+
+Run the separate coverage check after a health refresh:
+
+```bash
+npm run coverage:audit
+```
+
+Coverage reads the recent qualified URLs in `data/scan-history.tsv` for
+LinkedIn, Indeed, IEFP Online, ITJobs and Net-Empregos. A `healthy` source does
+not increase coverage by itself; a `DEGRADED` result is a visibility warning,
+not proof that the source is closed.
+
 Generate a safe cleanup plan from the latest source-health data:
 
 ```bash

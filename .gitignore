@@ -8,6 +8,11 @@ reports/*
 !reports/.gitkeep
 output/*
 !output/.gitkeep
+backups/
+# Local operational notes may mention vacancies, recruiters, application state
+# or other User Layer evidence. Keep them available locally, never package them.
+docs/*-AUDIT-*.md
+docs/superpowers/
 batch/logs/*
 !batch/logs/.gitkeep
 batch/batch-state.tsv
@@ -36,7 +41,14 @@ modes/_profile.md
 node_modules/
 .gocache/
 dist/
-dashboard/*.exe
+dashboard/*.exe*
+tools/codex/
+tools/go/
+# Local security scanner installed from the pinned official Go module.
+tools/gitleaks/
+
+# Ephemeral browser snapshots can contain rendered vacancy-page content.
+.playwright-cli/
 
 # OS
 .DS_Store

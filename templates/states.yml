@@ -19,6 +19,12 @@ states:
     description: Application submitted
     dashboard_group: applied
 
+  - id: scheduled
+    label: Scheduled
+    aliases: [agendado, agendada]
+    description: Application email is scheduled in Gmail but has not been sent yet
+    dashboard_group: scheduled
+
   - id: responded
     label: Responded
     aliases: [respondido]

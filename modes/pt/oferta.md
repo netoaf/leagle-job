@@ -1,5 +1,7 @@
 # Modo: oferta -- Avaliacao Completa A-F
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. Este ficheiro acrescenta contexto de análise em português; nunca editar o tracker diretamente, fazer upload, enviar ou submeter.
+
 Quando o candidato cola uma vaga (texto ou URL), entregar SEMPRE os 6 blocos:
 
 Antes de classificar a vaga, ler `modes/_profile.md`. Se o perfil definir
@@ -143,7 +145,8 @@ Salvar avaliacao completa em `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 (conteudo completo do bloco F)
 
 ## G) Rascunhos de Respostas para Candidatura
-(apenas se score >= 90/100 -- rascunhos de respostas para o formulario de candidatura)
+(apenas quando a recomendacao canonica for `apply` -- rascunhos para campos do
+formulario que param antes de upload ou submissao final)
 
 ---
 
@@ -151,20 +154,10 @@ Salvar avaliacao completa em `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 (lista de 15-20 keywords do JD para otimizacao ATS)
 ```
 
-### 2. Registrar no tracker
+### 2. Registar pela pipeline suportada
 
-**SEMPRE** registrar em `data/applications.md`:
-- Proximo numero sequencial
-- Data atual
-- Empresa
-- Vaga
-- Score: score global 0-100, usando os pesos definidos em `modes/_profile.md`
-- Status: `Evaluated`
-- PDF: ❌ (ou ✅ se a auto-pipeline gerou PDF)
-- Report: link relativo ao report .md (ex: `[001](reports/001-company-2026-01-01.md)`)
-
-**Formato do tracker:**
-
-```markdown
-| # | Data | Empresa | Vaga | Score | Status | PDF | Report |
-```
+Nunca editar diretamente uma linha do tracker. Se a vaga tiver de entrar no
+sistema, processar a URL confirmada por `evaluate-url.mjs` ou
+`scan-and-rank.mjs`; essa pipeline atribui o score canonico 0--100, o estado e
+o link do report. Executar depois `npm run verify`. Caso contrario, esta
+avaliacao fica apenas como material de revisao.

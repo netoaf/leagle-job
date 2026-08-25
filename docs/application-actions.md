@@ -11,7 +11,10 @@ They answer:
 - what is blocking the application;
 - what the next human action is.
 
-They do not send emails, create Gmail drafts, upload CVs or submit forms.
+Email actions may create an unsent Gmail draft after verification. Portal actions
+may open the official form and fill only confirmed fields, but they do not upload
+CVs, send emails or submit forms. The selected CV path and unresolved questions
+are shown for human completion.
 
 ## Commands
 
@@ -50,6 +53,24 @@ This file is local user state and should not be committed.
 - `needs_channel`: official application channel is missing or unclear.
 - `needs_recipient`: email channel is selected but recipient is missing.
 - `blocked_missing_report`: tracker points to a missing report.
+
+## Application channels
+
+- `official_portal`: company or ATS portal such as Workday, Greenhouse,
+  Lever, Ashby, Workable, SmartRecruiters, Teamtailor or Eightfold.
+- `linkedin_apply`: LinkedIn-hosted application or redirect discovered from a
+  LinkedIn job page.
+- `job_board_apply`: an aggregator such as Indeed, ITJobs or Net-Empregos;
+  authentication or an email reveal may still be required.
+- `email`: confirmed recruiter/company mailbox; Gmail drafts remain review-first.
+- `manual_apply_url`: a valid URL exists, but its exact mechanism is not yet
+  classified.
+
+Leagle Job prepares and tracks every channel. Codex browser assistance may fill
+known fields and select the documented CV after the user asks for that vacancy,
+but it stops before any upload. The final submit/send action remains
+human-approved. CAPTCHA, unknown facts, consent choices and sensitive
+identifiers always stop for user input.
 
 ## Required Human Review
 

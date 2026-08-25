@@ -1,109 +1,98 @@
 # Current Leagle Job Status
 
-Last reconciled: 2026-08-06
+Last reconciled: 2026-08-25
 
-## Stable Baseline
+## Scope of this document
 
-Leagle Job v1.4.0 is the current approved local-distribution baseline. This
-baseline was originally validated under the local name JobFinder; the rebrand
-does not change its functional or release evidence.
+This is the concise status of the checked-in product. It intentionally does not
+contain candidate names, recruiter addresses, vacancy lists, tracker IDs,
+private reports or operational audit detail. Those belong to the local User
+Layer and must not be included in a release.
 
-- clean-bundle tag: `v1.4.0` (the canonical development repository itself
-  has no `v1.4.0` tag);
-- complete sanitized history rooted at `fe71d4ff66d388626be144667a9876b3170d00ed`;
-- remotes at release: none;
-- release decision: approved for local distribution.
+The public `main` history is behind the local baseline candidate described
+here. Do not infer that a public GitHub commit, tag or CI run includes a feature
+unless that exact revision contains it.
 
-The artifact checksums, privacy checks and fresh-install evidence are recorded
-in
-[`16-SANITIZED-RELEASE-V1.4.0.md`](../research/jobnavigator/analysis/16-SANITIZED-RELEASE-V1.4.0.md).
+## Confirmed product capabilities
 
-The previous v1.3.0 attestation remains available in
-[`14-SANITIZED-RELEASE-V1.3.0.md`](../research/jobnavigator/analysis/14-SANITIZED-RELEASE-V1.3.0.md).
+- Local-first Node.js job-discovery and ranking pipeline with a Go terminal
+  dashboard.
+- Source adapters for supported job boards, ATS platforms and bounded generic
+  HTML extraction; browser extraction is optional and guarded.
+- Evidence-preserving normalization, multi-key deduplication, quality gate and
+  deterministic 0--100 scoring.
+- Human-readable reports, application packs, CV selection, application-action
+  tracking and follow-up tracking.
+- Network safety boundary for direct HTTP and browser fallback, including
+  public-address checks, redirect revalidation and response budgets.
+- Repeatable redacted full-history secret scan through the locally ignored
+  Gitleaks binary or an explicitly configured executable.
+- Atomic source-health replacement with an environment-failure guard. A broad
+  network outage cannot replace the last usable canonical source snapshot.
+- Atomic, sanitized per-source run memory for real canonical scans. It keeps
+  acquisition, capture, quality and fit separate; alerts after three
+  comparable failures or empty acquisitions; and advances no source streak
+  during a broad environment outage.
+- Optional Codex/Gmail integration. When explicitly enabled and every gate
+  passes, it may create an unsent Gmail draft with its deterministic local CV
+  attachment. It never sends email or submits an application.
+- Optional portal preparation may fill only confirmed fields and stops before
+  file upload or final submission.
 
-## Implemented Foundations
+## Current validation evidence
 
-- System Layer and local User Layer are separated by the data contract.
-- Candidate data, reports, runtime data and generated output remain local and
-  ignored by Git.
-- Direct HTTP consumers use the existing safe-fetch boundary.
-- Playwright fallbacks use the companion network guard.
-- The safe-fetch boundary has 17 synthetic security regressions.
-- Eightfold support is implemented with a bounded listing flow, same-origin
-  detail API, seven synthetic regressions and MIT attribution.
-- Existing Leagle Job normalization, quality, scoring, tracking and
-  review-first application flows remain the source of truth.
-- The system does not submit applications, upload CVs or send emails
-  automatically.
+The local release candidate was last checked on 2026-08-25 with:
 
-## Decision Precedence
+| Gate | Result |
+| --- | --- |
+| Node unit suite | 144 passing, 0 failing |
+| Product health | 16/16 checks passing |
+| Product suite | 101 passing, 0 failing, 0 warnings |
+| Pipeline reconciliation | 0 errors, 0 warnings across 137 tracker entries |
+| Dependency audit | 0 production vulnerabilities reported |
+| Secret scan | 24 reachable Git commits scanned with no leaks |
+| Whitespace check | no whitespace errors |
 
-The analysis reports are historical evidence and should not be rewritten when
-a later gate changes the disposition:
+These results prove the local deterministic checks. They do not prove that
+external job boards, Codex authentication, a Gmail connector or a browser
+session are available at a later time.
 
-- the release-pending statement in
-  `13-EIGHTFOLD-ADAPTER-INTEGRATION.md` is superseded by the v1.3.0 release
-  attestation;
-- the privacy/index blockers in
-  `09-SAFE-FETCH-PLAN-RESULT.md` and
-  `10-SAFE-FETCH-INTERNAL-ATTESTATION.md` were resolved by the sanitized
-  history and release gates;
-- `05-COMPONENT-DECISIONS.json` is the current machine-readable component
-  decision record.
+## Operational limits
 
-## Foundation Gate Result
+- Discovery coverage is **DEGRADED** until a current coverage audit proves
+  otherwise. A configured source is not evidence that it produced a valid job.
+- Persistent source-run memory currently covers only the canonical
+  `scan-and-rank` path. Structured deep search and browser/manual imports stay
+  excluded until they expose the same acquisition/capture/fit contract.
+- LinkedIn, Indeed and IEFP are not all first-class executable Node scanners;
+  use authenticated/manual discovery only as supplemental, user-controlled
+  input and verify the official vacancy before any action.
+- The operational store is currently Markdown, TSV and JSONL. Source-health
+  replacement is atomic; the remaining stores have integrity checks but no
+  transaction spanning every file write.
+- Core search, ranking, dashboard and tracking work without Codex. Advanced
+  Gmail drafting and portal preparation require a compatible authenticated
+  Codex/browser environment and fail closed when it is unavailable.
 
-The v1.4.0 foundation adds:
+## Canonical references
 
-- 48 passing unit tests covering network safety, Eightfold, normalization,
-  identity, enrichment, quality and source-health classification;
-- the complete unit suite as a mandatory product health check;
-- a least-privilege CI workflow with official setup actions pinned by commit;
-- complete-history Gitleaks scanning with a pinned binary checksum;
-- Windows beginner-setup, full product, dashboard and sanitized-package gates.
+- Product architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- User/system data boundary: [`../DATA_CONTRACT.md`](../DATA_CONTRACT.md)
+- Daily operation: [`operational-runbook.md`](operational-runbook.md)
+- Gmail boundary: [`gmail-adapter.md`](gmail-adapter.md)
+- Agent routing: [`CODEX.md`](CODEX.md)
 
-The new tests found and fixed two deterministic defects: `C#` token detection
-and trailing-slash normalization before a URL query. No new live source
-adapter is included in this release.
+## Next engineering priorities
 
-## Source Health Revalidation
-
-The 2026-07-27 live audit checked 184 active sources:
-
-- 158 healthy;
-- 14 dead URLs;
-- 7 fetch failures;
-- 5 blocked;
-- 0 requiring a new adapter.
-
-The current Minsait/Indra SuccessFactors listing exposes public,
-server-rendered `/job/` links. The existing bounded generic HTML scanner found
-six matching Portugal roles in a no-write dry run. Adding an authenticated
-OData integration or a browser adapter would therefore add complexity without
-improving this source.
-
-Source detection now classifies SuccessFactors pages with usable
-server-rendered job links as `generic_html/existing`. SuccessFactors pages
-without such links remain `successfactors/needed`. Two synthetic regressions
-lock both sides of that boundary, and the existing Eightfold precedence test
-remains green.
-
-The live source URLs, audit snapshot and cleanup report remain User Layer
-runtime evidence and are not part of a public release.
-
-## Next Product Decisions
-
-After the foundation gate is green:
-
-1. continue fixing high-value dead or redirected sources in small,
-   evidence-backed batches;
-2. add a SuccessFactors adapter only if a current high-value source lacks
-   usable server-rendered job links;
-3. test whether Bizneo and embedded-Ashby detection should influence scanner
-   routing before changing either path;
-4. improve evidence-preserving job enrichment without inventing candidate or
-   compensation data;
-5. split large scanner modules only along tested behavior boundaries.
-
-Source-health files are User Layer runtime evidence and are intentionally not
-part of a public release.
+1. Restore measurable discovery coverage across LinkedIn, Indeed, IEFP Online,
+   ITJobs and Net-Empregos. Preserve the discovery lane separately, then
+   verify the official vacancy before any dashboard write.
+2. Dogfood the new source-run memory in real Portugal-first scans and adjust
+   thresholds only from observed noise; zero acquisition remains a coverage
+   warning, not proof of a broken portal.
+3. Normalize acquisition/capture/fit counters in structured deep search and
+   other scanners before allowing them to write the same ledger.
+4. Preserve exact official vacancy titles through evaluation and dashboard
+   import so a trustworthy listing remains recognisable to the candidate.
+5. Extend the tested atomic persistence boundary one store at a time before
+   considering any database migration or additional automation.

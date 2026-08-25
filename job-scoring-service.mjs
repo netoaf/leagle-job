@@ -13,8 +13,10 @@ const SEVERE_HARD_BLOCKERS = new Set([
   'sales_disguised_as_it',
   'non_technical_role',
   'senior_required',
+  'requires_completed_higher_education',
   'private_data_required',
   'fake_junior_role',
+  'presencial_too_far',
 ]);
 
 export function validateScoringConfig(scoring) {
@@ -131,30 +133,34 @@ export function evaluateJobFit(job, configs = loadJobFinderConfigs(projectRoot))
 
   const strengths = detectStrengths(job, text, stack, skillNames);
   const redFlags = detectRedFlags(job, text, stack, profile);
-  const hardBlockersTriggered = detectHardBlockers(job, text, redFlags, scoring.hard_blockers || []);
+  const hardBlockersTriggered = detectHardBlockers(job, text, redFlags, scoring.hard_blockers || [], profile);
 
   const rawScore = Object.values(scoreBreakdown).reduce((sum, value) => sum + value, 0);
   const contextualPenalties = detectContextualPenalties(job, text);
-  const penaltyTotal = redFlags.reduce((sum, flag) => sum + Number(penalties[flag] || 0), 0) + contextualPenalties.total;
+  const penaltyTotal = redFlags.reduce((sum, flag) => sum + penaltyForRedFlag(flag, penalties, job, text), 0) + contextualPenalties.total;
   const finalScore = clamp(round(rawScore + penaltyTotal), 0, 100);
+  const severeBlocker = hardBlockersTriggered.some((blocker) => SEVERE_HARD_BLOCKERS.has(blocker));
+  const effectiveScore = severeBlocker
+    ? Math.min(finalScore, Math.max(0, Number(thresholds.discard_below) - 1))
+    : finalScore;
 
   let recommendation = 'discard';
-  if (hardBlockersTriggered.some((blocker) => SEVERE_HARD_BLOCKERS.has(blocker))) {
+  if (severeBlocker) {
     recommendation = 'discard';
-  } else if (finalScore >= Number(thresholds.apply_min)) {
+  } else if (effectiveScore >= Number(thresholds.apply_min)) {
     recommendation = 'apply';
-  } else if (finalScore >= Number(thresholds.maybe_min)) {
+  } else if (effectiveScore >= Number(thresholds.maybe_min)) {
     recommendation = 'maybe';
   }
 
   return {
-    score: finalScore,
+    score: effectiveScore,
     recommendation,
     score_breakdown: scoreBreakdown,
     strengths,
     red_flags: [...redFlags, ...contextualPenalties.flags],
     hard_blockers_triggered: hardBlockersTriggered,
-    reasoning: buildReasoning(rawScore, penaltyTotal, finalScore, hardBlockersTriggered, recommendation),
+    reasoning: buildReasoning(rawScore, penaltyTotal, effectiveScore, hardBlockersTriggered, recommendation),
     next_action: nextActionFor(recommendation, hardBlockersTriggered),
   };
 }
@@ -180,7 +186,7 @@ function scoreTargetRoleFit(job, text, titleText, profile, weight) {
 
 function scoreTechnicalStack(stack, skillNames, text, weight) {
   if (stack.length === 0) return weight * 0.35;
-  const matches = stack.filter((tech) => skillNames.some((skill) => normalizeTech(skill) === normalizeTech(tech) || normalizeTech(skill).includes(normalizeTech(tech)) || normalizeTech(tech).includes(normalizeTech(skill))));
+  const matches = stack.filter((tech) => skillNames.some((skill) => technologiesMatch(skill, tech)));
   const ratio = matches.length / stack.length;
   const learningBonus = hasAny(text, ['junior', 'estagio', 'internship', 'trainee', 'learn', 'aprender']) ? 0.15 : 0;
   return weight * clamp(ratio + learningBonus, 0, 1);
@@ -197,7 +203,7 @@ function scoreMentorship(job, text, weight) {
 function scoreProgression(job, text, weight) {
   if (job.progression === true || job.contract_possible === true) return weight;
   if (job.progression === false) return weight * 0.2;
-  if (hasAny(text, ['progression', 'progressao', 'contrato', 'integration', 'integracao', 'career path', 'crescimento', 'evolucao'])) return weight;
+  if (hasAny(text, ['progression', 'progressao', 'contrato', 'integration', 'integracao', 'continuidade', 'continuity', 'career path', 'crescimento', 'evolucao'])) return weight;
   if (hasAny(text, ['estagio', 'internship', 'trainee'])) return weight * 0.55;
   return weight * 0.35;
 }
@@ -206,7 +212,9 @@ function scoreLocation(job, text, weight) {
   const workMode = normalizeText(job.work_mode || '');
   const location = normalizeText(job.location || '');
   if (hasAny(workMode, ['remote', 'remoto']) || hasAny(text, ['remote', 'remoto'])) return weight;
-  if (hasAny(workMode, ['hybrid', 'hibrido']) || hasAny(text, ['hybrid', 'hibrido'])) return weight;
+  if (hasAny(workMode, ['hybrid', 'hibrido']) || hasAny(text, ['hybrid', 'hibrido'])) {
+    return hasAny(location, ['lisboa', 'lisbon']) ? weight : weight * 0.35;
+  }
   if (hasAny(location, ['lisboa', 'lisbon'])) return weight * 0.75;
   if (hasAny(workMode, ['onsite', 'presencial']) && !hasAny(location, ['lisboa', 'lisbon'])) return weight * 0.25;
   return weight * 0.5;
@@ -214,7 +222,7 @@ function scoreLocation(job, text, weight) {
 
 function scoreCompensation(job, text, weight) {
   const compensation = normalizeText(job.compensation || '');
-  if (hasAny(compensation, ['paid', 'remunerado', 'bolsa', 'stipend', 'salary', 'salario']) || hasAny(text, ['paid internship', 'estagio remunerado', 'bolsa', 'stipend', 'salary', 'salario'])) return weight;
+  if (hasAny(compensation, ['paid', 'remunerado', 'remuneracao', 'vencimento', 'bolsa', 'stipend', 'salary', 'salario']) || hasAny(text, ['paid internship', 'estagio remunerado', 'remuneracao', 'vencimento', 'bolsa', 'stipend', 'salary', 'salario'])) return weight;
   if (hasAny(compensation, ['unpaid', 'nao remunerado', 'sem remuneracao']) || hasAny(text, ['unpaid', 'nao remunerado', 'sem remuneracao'])) return 0;
   return weight * 0.45;
 }
@@ -234,21 +242,24 @@ function detectStrengths(job, text, stack, skillNames) {
   if (hasAny(text, ['estagio', 'internship', 'trainee', 'junior'])) strengths.push('early_career_level');
   if (hasAny(text, ['remote', 'remoto', 'hybrid', 'hibrido', 'lisboa', 'lisbon'])) strengths.push('location_or_work_mode_fit');
   if (hasAny(text, ['mentor', 'mentoria', 'training', 'formacao', 'learn', 'aprender', 'willingness to learn', 'curiosity', 'onboarding', 'documentation', 'informal training'])) strengths.push('mentorship_or_learning_signal');
-  if (hasAny(text, ['progression', 'progressao', 'contrato', 'integracao'])) strengths.push('progression_signal');
-  const matchedStack = stack.filter((tech) => skillNames.some((skill) => normalizeTech(skill) === normalizeTech(tech) || normalizeTech(skill).includes(normalizeTech(tech)) || normalizeTech(tech).includes(normalizeTech(skill))));
+  if (hasAny(text, ['progression', 'progressao', 'contrato', 'integracao', 'continuidade', 'continuity'])) strengths.push('progression_signal');
+  const matchedStack = stack.filter((tech) => skillNames.some((skill) => technologiesMatch(skill, tech)));
   if (matchedStack.length > 0) strengths.push(`stack_match:${matchedStack.join(', ')}`);
   return strengths;
 }
 
 function detectRedFlags(job, text, stack, profile) {
   const flags = new Set();
-  const years = Number(job.asks_years_experience ?? extractYears(text));
+  const years = extractYears(text);
   const earlyCareer = hasAny(text, ['junior', 'estagio', 'estagiario', 'estagiaria', 'intern', 'internship', 'trainee']);
 
   if (earlyCareer && years >= 2) flags.add('asks_2_plus_years_for_junior');
   if (!hasCompensation(job, text)) flags.add('no_salary_or_stipend');
   if (!hasMentorship(job, text)) flags.add('no_mentorship');
   if (stack.length === 0) flags.add('unclear_stack');
+  if (stack.length > 0 && !stack.some((tech) => getProfileSkillNames(profile).some((skill) => technologiesMatch(skill, tech)))) {
+    flags.add('no_required_stack_match');
+  }
   if (isSalesDisguisedAsIT(text)) flags.add('sales_disguised_as_it');
   if (isFarOnsite(job, text)) flags.add('far_onsite_location');
   if (isVague(job, text)) flags.add('vague_description');
@@ -284,7 +295,21 @@ function detectContextualPenalties(job, text) {
   return { flags, total };
 }
 
-function detectHardBlockers(job, text, redFlags, configuredBlockers) {
+function penaltyForRedFlag(flag, penalties, job, text) {
+  const configured = Number(penalties[flag] || 0);
+  if (flag !== 'no_required_stack_match' || configured >= 0) return configured;
+
+  const title = normalizeText(job.title || '');
+  const technologySpecificTitle = hasAny(title, [
+    'java', 'c#', '.net', 'php', 'python', 'react', 'angular', 'salesforce',
+    'sap', 'oracle', 'linux kernel', 'devops', 'data engineer',
+  ]);
+  const learningRole = hasEarlyCareerSignal(text) && hasMentorship(job, text);
+
+  return learningRole && !technologySpecificTitle ? Math.max(configured, -8) : configured;
+}
+
+function detectHardBlockers(job, text, redFlags, configuredBlockers, profile) {
   const blockers = new Set();
   const allowed = new Set(configuredBlockers);
   const add = (key) => {
@@ -292,9 +317,13 @@ function detectHardBlockers(job, text, redFlags, configuredBlockers) {
   };
 
   if (isClearlyNonTechnical(text)) add('non_technical_role');
+  if (isNonSoftwareProgrammingRole(job)) add('non_technical_role');
   if (isScamOrMlm(text)) add('scam_or_mlm');
   if (redFlags.includes('sales_disguised_as_it')) add('sales_disguised_as_it');
   if (isSeniorRequired(job, text)) add('senior_required');
+  if (requiresCompletedHigherEducation(text) && !profileHasCompletedHigherEducation(profile)) {
+    add('requires_completed_higher_education');
+  }
   if (job.requires_private_data === true || hasAny(text, ['nif obrigatorio antes da entrevista', 'citizen card required before interview', 'api key', 'private token'])) add('private_data_required');
   if (isUnpaidWithoutMentorship(job, text)) add('unpaid_without_strong_mentorship');
   if (isFarOnsite(job, text)) add('presencial_too_far');
@@ -346,11 +375,62 @@ function isScamOrMlm(text) {
 }
 
 function isSeniorRequired(job, text) {
-  const years = Number(job.asks_years_experience ?? extractYears(text));
+  const years = extractYears(text);
   const title = normalizeText(job.title || '');
-  const seniorTitle = hasAny(title, ['senior', 'lead', 'principal', 'head of']);
+  const offersJuniorTrack = hasAny(title, ['junior', 'intern', 'estagio', 'trainee']);
+  const seniorTitle = hasAny(title, ['senior', 'lead', 'principal', 'head of']) && !offersJuniorTrack;
   const explicitRequirement = hasAny(text, ['senior profile required', 'perfil senior', 'senior-level candidate', 'mid-level or senior', 'mid/senior']);
   return seniorTitle || explicitRequirement || years >= 3;
+}
+
+function requiresCompletedHigherEducation(text) {
+  const source = normalizeForPhraseMatching(text);
+  const explicitlyOptional = [
+    'degree preferred',
+    'degree is preferred',
+    'licenciatura preferencial',
+    'formacao superior preferencial',
+    'degree or equivalent experience',
+    'degree or equivalent practical experience',
+    'licenciatura ou experiencia equivalente',
+    'a frequentar licenciatura',
+  ].some((phrase) => source.includes(phrase));
+  if (explicitlyOptional) return false;
+
+  return [
+    'formacao superior em',
+    'ensino superior completo',
+    'licenciatura concluida',
+    'licenciatura completa',
+    'licenciatura em',
+    'licenciado em',
+    'bachelor degree',
+    'bachelors degree',
+    'university degree required',
+    'higher education degree',
+    'completed degree',
+    'degree in computer engineer',
+    'degree in computer science',
+    'degree in software engineering',
+  ].some((phrase) => source.includes(phrase));
+}
+
+function isNonSoftwareProgrammingRole(job) {
+  const title = normalizeText(job.title || '');
+  return hasAny(title, [
+    'grelhas programacao',
+    'programacao conteudos',
+    'programacao de conteudos',
+    'programador cnc',
+    'operador cnc',
+    'instructional designer',
+    'formacao e-learning',
+    'tecnico de formacao',
+  ]);
+}
+
+function profileHasCompletedHigherEducation(profile) {
+  return profile?.education?.completed_higher_education === true;
 }
 
 function hasEarlyCareerSignal(text) {
@@ -358,7 +438,7 @@ function hasEarlyCareerSignal(text) {
 }
 
 function isFakeJunior(job, text) {
-  const years = Number(job.asks_years_experience ?? extractYears(text));
+  const years = extractYears(text);
   return hasAny(text, ['junior', 'estagio', 'internship', 'trainee']) && years >= 2;
 }
 
@@ -372,7 +452,13 @@ function isFarOnsite(job, text) {
   const location = normalizeText(job.location || '');
   const markedFar = job.far_from_lisbon === true || job.heavy_commute === true;
   const onsite = hasAny(workMode, ['onsite', 'presencial']) || hasAny(text, ['onsite', 'presencial']);
-  return markedFar || (onsite && location && !hasAny(location, ['lisboa', 'lisbon', 'remote', 'remoto']));
+  const hybrid = hasAny(workMode, ['hybrid', 'hibrido']) || hasAny(text, ['hybrid', 'hibrido']);
+  const explicitlyRemote = hasAny(workMode, ['remote', 'remoto']) || hasAny(location, ['remote', 'remoto']);
+  const outsideLisbon = Boolean(location) && !hasAny(location, [
+    'lisboa', 'lisbon', 'oeiras', 'porto salvo', 'cascais', 'sintra', 'amadora', 'odivelas',
+    'loures', 'almada', 'seixal', 'barreiro',
+  ]);
+  return markedFar || (!explicitlyRemote && outsideLisbon && (onsite || hybrid));
 }
 
 function isVague(job, text) {
@@ -437,19 +523,52 @@ function canonicalLanguage(value) {
 function hasCompensation(job, text) {
   if (job.compensation === true) return true;
   const compensation = normalizeText(job.compensation || '');
-  return hasAny(compensation, ['paid', 'remunerado', 'bolsa', 'stipend', 'salary', 'salario']) ||
-    hasAny(text, ['paid internship', 'estagio remunerado', 'bolsa', 'stipend', 'salary', 'salario']);
+  return hasAny(compensation, ['paid', 'remunerado', 'remuneracao', 'vencimento', 'bolsa', 'stipend', 'salary', 'salario']) ||
+    hasAny(text, ['paid internship', 'estagio remunerado', 'remuneracao', 'vencimento', 'bolsa', 'stipend', 'salary', 'salario']);
 }
 
 function hasMentorship(job, text) {
   if (job.mentorship === true) return true;
   if (job.mentorship === false) return false;
-  return hasAny(text, ['mentoria', 'mentor', 'mentorship', 'acompanhamento', 'training', 'formacao', 'learn with', 'aprender com', 'willingness to learn', 'curiosity', 'onboarding', 'documentation', 'informal training']);
+  return hasAny(text, ['mentoria', 'mentor', 'mentorship', 'acompanhamento', 'training', 'formacao', 'learn with', 'learn from', 'aprender com', 'willingness to learn', 'curiosity', 'onboarding', 'documentation', 'informal training']);
 }
 
 function extractYears(text) {
-  const match = text.match(/(\d+)\+?\s*(years|anos)/);
-  return match ? Number(match[1]) : 0;
+  const segments = normalizeText(text).split(/[.!?;\n|]+/).filter(Boolean);
+  const matches = [];
+  const explicitPatterns = [
+    /\b(?:minimum|minimo|minima|at least|pelo menos)\s+(?:de\s+)?(\d+)\+?\s*(?:years|anos|year|ano)\b/g,
+    /\b(?:experiencia minima|minimum experience|professional experience required|experiencia profissional obrigatoria)[^.!?;\n]{0,50}?(\d+)\+?\s*(?:years|anos|year|ano)\b/g,
+    /\b(\d+)\+?\s*(?:years|anos|year|ano)\s+(?:of\s+)?(?:professional|relevant|hands-on|work|profissional|comprovada)\s+(?:experience|experiencia)\b/g,
+  ];
+  const candidateScopedPattern = /\b(\d+)\+?\s*(?:years|anos|year|ano)\s+(?:of\s+)?(?:experience|experiencia)\b/g;
+
+  for (const segment of segments) {
+    const candidateScoped = hasAny(segment, [
+      'candidate', 'candidato', 'candidata', 'profile', 'perfil', 'requirements',
+      'requisitos', 'we are looking for', 'procuramos', 'you have', 'tens experiencia',
+      'must have', 'required', 'obrigatorio', 'experiencia profissional',
+    ]);
+    const companyScoped = hasAny(segment, [
+      'company with', 'empresa com', 'years in the market', 'anos no mercado',
+      'years of company experience', 'anos de experiencia da empresa', 'founded', 'fundada',
+    ]);
+    if (companyScoped && !candidateScoped) continue;
+
+    const patterns = candidateScoped
+      ? [...explicitPatterns, candidateScopedPattern]
+      : explicitPatterns;
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0;
+      for (const match of segment.matchAll(pattern)) {
+        const before = segment.slice(Math.max(0, Number(match.index) - 60), Number(match.index));
+        const companyHistory = /(?:empresa|company|mercado|market)\s+(?:com|with|ha|for)?[^\d]{0,30}(?:mais de|more than)?\s*$/i.test(before);
+        if (!companyHistory) matches.push(Number(match[1]));
+      }
+    }
+  }
+
+  return matches.length > 0 ? Math.max(...matches) : 0;
 }
 
 function buildReasoning(rawScore, penaltyTotal, finalScore, hardBlockers, recommendation) {
@@ -485,6 +604,24 @@ function normalizeText(value) {
 
 function normalizeTech(value) {
   return normalizeText(value).replace(/[^a-z0-9+#.]/g, '');
+}
+
+function technologiesMatch(left, right) {
+  return canonicalTech(left) === canonicalTech(right);
+}
+
+function canonicalTech(value) {
+  const text = normalizeTech(value);
+  if (!text) return '';
+  if (['javascript', 'js'].includes(text)) return 'javascript';
+  if (text === 'java') return 'java';
+  if (['node', 'nodejs', 'node.js'].includes(text)) return 'nodejs';
+  if (['c#', 'csharp'].includes(text)) return 'csharp';
+  if (text === '.net' || text === 'dotnet' || text.startsWith('asp.net')) return 'dotnet';
+  if (['restapi', 'restfulapi', 'api'].includes(text)) return 'api';
+  if (['sql', 'sqlserver', 'mssql'].includes(text)) return 'sql';
+  if (text.startsWith('entityframework')) return 'entityframework';
+  return text;
 }
 
 function normalizeForPhraseMatching(value) {

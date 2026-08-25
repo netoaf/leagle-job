@@ -28,7 +28,7 @@ $excludeDirs = @(
     "node_modules",
     "tools",
     "dist",
-    "backup",
+    "backups",
     "data",
     "reports",
     "output",
@@ -36,7 +36,8 @@ $excludeDirs = @(
     "interview-prep",
     "research",
     "batch\logs",
-    "batch\tracker-additions"
+    "batch\tracker-additions",
+    "docs\superpowers"
 )
 
 $excludeFiles = @(
@@ -62,6 +63,7 @@ $excludeFilePatterns = @(
     "(^|\\)\.env($|\.)",
     "\.(pem|pfx|p12|key)$",
     "(^|\\)(credentials?|secrets?)\.[^\\]+$"
+    "^docs\\.*-AUDIT-.*\.md$"
 )
 
 function Test-ExcludedPath {
@@ -69,7 +71,7 @@ function Test-ExcludedPath {
 
     $normalized = $RelativePath.Replace("/", "\").TrimStart([char]92)
     $segments = $normalized -split "\\"
-    if ($segments | Where-Object { $_ -in @(".git", ".gocache", "node_modules", "dist", "backup") }) {
+    if ($segments | Where-Object { $_ -in @(".git", ".gocache", "node_modules", "dist", "backups") }) {
         return $true
     }
     foreach ($dir in $excludeDirs) {
@@ -298,6 +300,7 @@ try {
     Set-Content -LiteralPath (Join-Path $StageDir "data\applications.md") -Encoding UTF8 -Value "# Applications`r`n`r`nNo applications yet."
     Set-Content -LiteralPath (Join-Path $StageDir "data\pipeline.md") -Encoding UTF8 -Value "# Job Pipeline`r`n`r`n## Pending`r`n`r`n## Processed"
     Set-Content -LiteralPath (Join-Path $StageDir "data\scan-history.tsv") -Encoding UTF8 -Value "url`tfirst_seen`tportal`ttitle`tcompany`tstatus"
+    Set-Content -LiteralPath (Join-Path $StageDir "data\source-runs.tsv") -Encoding UTF8 -Value "timestamp`trun_id`tcontract_version`trunner`tprofile`tmode`tsource`tsource_type`toutcome`tdiscovered`tcaptured`tqualified`tselected`terror_kind"
     Set-Content -LiteralPath (Join-Path $StageDir "data\job-index.jsonl") -Encoding UTF8 -Value ""
     Set-Content -LiteralPath (Join-Path $StageDir "data\application-followups.tsv") -Encoding UTF8 -Value "application_id`tcompany`trole`tstatus`tlast_contact_at`tnext_follow_up_at`tnotes"
 

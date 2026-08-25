@@ -1,5 +1,7 @@
 # career-ops -- Modos em Portugues BR (`modes/pt/`)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. Estes ficheiros fornecem apenas contexto de mercado; nunca editar o tracker diretamente, fazer upload, enviar ou submeter.
+
 Esta pasta contem as traducoes em portugues brasileiro dos principais modos do career-ops para candidatos que buscam vagas no mercado brasileiro ou em empresas que operam em portugues.
 
 ## Quando usar estes modos?
