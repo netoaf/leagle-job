@@ -2,13 +2,14 @@
 
 Status: release candidate
 
-Candidate verified: 2026-08-24
+Candidate verified: 2026-08-25
 
 ## Outcome
 
 This maintenance candidate protects canonical source evidence during broad
 network outages, makes the local security scan reliable in isolated Windows
-checkouts and reconciles the documented release state with verified output.
+checkouts, persists reliable source-run signals and reconciles the documented
+release state with verified output.
 
 ## Improvements
 
@@ -23,19 +24,25 @@ checkouts and reconciles the documented release state with verified output.
   non-zero.
 - The canonical-path guard is case-insensitive on Windows, so alternate path
   casing cannot bypass the environment-failure protection.
+- Real canonical scans now persist a sanitized per-source run ledger. It
+  separates acquisition, capture, quality and fit; alerts after three
+  comparable failures or empty acquisitions; and never advances a source
+  streak during a broad environment outage.
 - Product leak/path checks inspect the publishable Git surface while separate
   privacy gates continue to require local User Layer paths to remain ignored.
 - Current-status and architecture documentation now match the release
   candidate's verified commands and file layout.
+- Ephemeral browser snapshots are explicitly ignored to prevent rendered
+  vacancy-page content from entering a release by accident.
 
 ## Verification
 
-- Product suite: 98 passed, 0 failed, 0 warnings.
-- Node unit suite: 123 passed, 0 failed.
-- Product health: 15/15 checks passed.
-- Pipeline reconciliation: 0 errors, 0 warnings across 135 tracker entries.
+- Product suite: 101 passed, 0 failed, 0 warnings.
+- Node unit suite: 144 passed, 0 failed.
+- Product health: 16/16 checks passed.
+- Pipeline reconciliation: 0 errors, 0 warnings across 137 tracker entries.
 - Production dependency audit: 0 vulnerabilities.
-- Redacted Gitleaks scan: 23 Git commits scanned, no leaks found.
+- Redacted Gitleaks scan: 24 Git commits scanned, no leaks found.
 
 ## Privacy and safety
 

@@ -41,16 +41,16 @@ unless that exact revision contains it.
 
 ## Current validation evidence
 
-The local release candidate was last checked on 2026-08-24 with:
+The local release candidate was last checked on 2026-08-25 with:
 
 | Gate | Result |
 | --- | --- |
-| Node unit suite | 123 passing, 0 failing |
-| Product health | 15/15 checks passing |
-| Product suite | 98 passing, 0 failing, 0 warnings |
-| Pipeline reconciliation | 0 errors, 0 warnings across 135 tracker entries |
-| Dependency audit | no known production vulnerabilities reported |
-| Secret scan | 23 reachable Git commits scanned with no leaks |
+| Node unit suite | 144 passing, 0 failing |
+| Product health | 16/16 checks passing |
+| Product suite | 101 passing, 0 failing, 0 warnings |
+| Pipeline reconciliation | 0 errors, 0 warnings across 137 tracker entries |
+| Dependency audit | 0 production vulnerabilities reported |
+| Secret scan | 24 reachable Git commits scanned with no leaks |
 | Whitespace check | no whitespace errors |
 
 These results prove the local deterministic checks. They do not prove that
@@ -84,10 +84,15 @@ session are available at a later time.
 
 ## Next engineering priorities
 
-1. Dogfood the new source-run memory in real Portugal-first scans and adjust
+1. Restore measurable discovery coverage across LinkedIn, Indeed, IEFP Online,
+   ITJobs and Net-Empregos. Preserve the discovery lane separately, then
+   verify the official vacancy before any dashboard write.
+2. Dogfood the new source-run memory in real Portugal-first scans and adjust
    thresholds only from observed noise; zero acquisition remains a coverage
    warning, not proof of a broken portal.
-2. Normalize acquisition/capture/fit counters in structured deep search and
+3. Normalize acquisition/capture/fit counters in structured deep search and
    other scanners before allowing them to write the same ledger.
-3. Extend the tested atomic persistence boundary one store at a time before
+4. Preserve exact official vacancy titles through evaluation and dashboard
+   import so a trustworthy listing remains recognisable to the candidate.
+5. Extend the tested atomic persistence boundary one store at a time before
    considering any database migration or additional automation.

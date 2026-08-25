@@ -47,6 +47,9 @@ tools/go/
 # Local security scanner installed from the pinned official Go module.
 tools/gitleaks/
 
+# Ephemeral browser snapshots can contain rendered vacancy-page content.
+.playwright-cli/
+
 # OS
 .DS_Store
 *.mov

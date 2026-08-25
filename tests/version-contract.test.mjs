@@ -23,7 +23,17 @@ test('release-candidate documentation matches the verified checkout', () => {
 
   assert.match(architecture, /`lib\/network\/safe-fetch\.mjs`/);
   assert.doesNotMatch(architecture, /`lib\/safe-fetch\.mjs`/);
-  assert.match(currentStatus, /\| Node unit suite \| 123 passing, 0 failing \|/);
+  assert.match(currentStatus, /\| Node unit suite \| 144 passing, 0 failing \|/);
+  assert.match(currentStatus, /\| Product health \| 16\/16 checks passing \|/);
+  assert.match(currentStatus, /\| Product suite \| 101 passing, 0 failing, 0 warnings \|/);
+  assert.match(currentStatus, /\| Pipeline reconciliation \| 0 errors, 0 warnings across 137 tracker entries \|/);
+  assert.match(currentStatus, /\| Secret scan \| 24 reachable Git commits scanned with no leaks \|/);
   assert.match(releaseNotes, /^Status: release candidate$/m);
+  assert.match(releaseNotes, /^Candidate verified: 2026-08-25$/m);
+  assert.match(releaseNotes, /- Node unit suite: 144 passed, 0 failed\./);
+  assert.match(releaseNotes, /- Product health: 16\/16 checks passed\./);
+  assert.match(releaseNotes, /- Product suite: 101 passed, 0 failed, 0 warnings\./);
+  assert.match(releaseNotes, /- Pipeline reconciliation: 0 errors, 0 warnings across 137 tracker entries\./);
+  assert.match(releaseNotes, /- Redacted Gitleaks scan: 24 Git commits scanned, no leaks found\./);
   assert.doesNotMatch(releaseNotes, /^Release date:/m);
 });
