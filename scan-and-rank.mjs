@@ -12,6 +12,7 @@ import { appendJobIndex, addJobToLookup, createEmptyJobLookup, findJobInLookup, 
 import { evaluateJobQuality, loadQualityGateConfig } from './lib/job-quality-gate.mjs';
 import { extractJobDescriptionMax } from './lib/job-description-extractor.mjs';
 import { loadBrowserAgentConfig, validateBrowserAgentConfig } from './lib/browser-agent/safety.mjs';
+import { recordSourceRunMemory } from './lib/source-run-memory.mjs';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -107,7 +108,28 @@ export async function runScanAndRank(options = {}) {
     appendScanHistory(root, ranked, qualityRejected, minScore);
   }
 
+  result.source_reliability = recordSourceRunMemory(
+    buildSourceRunMemoryInput(root, scan, options, qualityPassed, selected),
+  );
+
   return result;
+}
+
+export function buildSourceRunMemoryInput(root, scan, options, qualityPassed, selected) {
+  const timestamp = scan.scanned_at || new Date().toISOString();
+  return {
+    project_root: root,
+    timestamp,
+    run_id: timestamp,
+    runner: 'scan-and-rank',
+    profile: scan.profile || options.profile || 'unknown',
+    mode: scan.scan_mode || (options.includeSeen ? 'audit' : 'new-only'),
+    source_stats: scan.source_stats || [],
+    qualified_jobs: qualityPassed || [],
+    selected_jobs: selected || [],
+    dry_run: Boolean(options.dryRun),
+    replay_input: Boolean(options.snapshot || options.candidates || options.fromSnapshot),
+  };
 }
 
 async function maybeMaxExtractWeakJobs(jobs, context) {
@@ -667,6 +689,7 @@ function loadSnapshot(file, root = projectRoot) {
 function normalizeScanInput(parsed = {}) {
   return {
     scanned_at: parsed.scanned_at || new Date().toISOString(),
+    profile: parsed.profile || 'unknown',
     scan_mode: parsed.scan_mode || 'single-url',
     known_index_size: parsed.known_index_size,
     candidates: parsed.candidates || [],
@@ -734,6 +757,7 @@ function printResult(result, dryRun) {
   }
 
   printSourceStats(result.source_stats || []);
+  printSourceReliability(result.source_reliability);
 
   if (!dryRun && result.written.length > 0) {
     console.log('\nWritten to dashboard:');
@@ -799,6 +823,35 @@ function printSourceStats(sourceStats) {
     console.log(`- ${stat.source} [${stat.type}]: found ${stat.discovered}, accepted ${stat.accepted}, skipped ${stat.skipped}${errorText}`);
   }
   if (sourceStats.length > 25) console.log(`- ... ${sourceStats.length - 25} more source(s)`);
+}
+
+function printSourceReliability(memory = {}) {
+  if (!memory || memory.reason === 'dry_run' || memory.reason === 'replay_input') return;
+  if (memory.reason === 'environment_failure') {
+    console.log(`\nSource memory: not updated because this run was an environment failure (${memory.environment?.reason || 'broad network outage'}).`);
+    return;
+  }
+  if (memory.reason === 'persistence_error') {
+    console.log(`\nSource memory: WARNING - previous ledger preserved; update failed (${memory.error_code || 'SOURCE_RUN_WRITE_FAILED'}).`);
+    return;
+  }
+  if (!memory.recorded) return;
+
+  const activeCount = memory.transitions?.active?.length || 0;
+  console.log(`\nSource memory: ${memory.rows_recorded} attempted source(s) recorded; ${activeCount} active alert(s).`);
+  for (const alert of (memory.transitions?.newly_active || []).slice(0, 10)) {
+    if (alert.kind === 'source_failure') {
+      console.log(`- HIGH: ${alert.source} failed in ${alert.streak} consecutive comparable runs.`);
+    } else {
+      console.log(`- MEDIUM: ${alert.source} returned zero matching jobs in ${alert.streak} consecutive comparable runs; it may simply have no current openings.`);
+    }
+  }
+  for (const alert of (memory.transitions?.resolved || []).slice(0, 10)) {
+    console.log(`- RESOLVED: ${alert.source} no longer has an active ${alert.kind} streak.`);
+  }
+  for (const warning of (memory.warnings || []).slice(0, 5)) {
+    console.log(`- LEDGER WARNING: ${warning}`);
+  }
 }
 
 function printCountSummary(summary, label) {

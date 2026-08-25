@@ -35,12 +35,16 @@ Este comando agrega:
 
 Se este comando falhar, corrigir antes de procurar vagas novas.
 
-## Saude das fontes e cobertura do mercado
+## Saude, memoria de execucao e cobertura do mercado
 
-Estes sao dois sinais diferentes:
+Estes sao tres sinais diferentes:
 
 - **Saude das fontes** indica se a URL/configuracao de uma fonte publica
   respondeu recentemente. Nao prova que existam vagas relevantes.
+- **Memoria de execucao** indica o que aconteceu em scans reais comparaveis:
+  falha da fonte, zero aquisicao, falha de captura, vagas sem fit ou resultado
+  saudavel. Tres falhas seguidas geram alerta alto; tres aquisicoes vazias
+  geram aviso medio, sem chamar a fonte de avariada.
 - **Cobertura** indica quantas URLs qualificadas foram realmente capturadas
   nos ultimos sete dias para LinkedIn, Indeed, IEFP, ITJobs e Net-Empregos.
   Uma fonte saudavel nao aumenta esta contagem por si so.
@@ -50,6 +54,7 @@ dashboard, atualizar e rever ambos os sinais:
 
 ```powershell
 npm.cmd run portals:audit
+npm.cmd run sources:status
 npm.cmd run coverage:audit
 ```
 
@@ -95,6 +100,7 @@ npm.cmd run jobfinder:health
 
 ```powershell
 npm.cmd run portals:audit
+npm.cmd run sources:status
 npm.cmd run coverage:audit
 ```
 
@@ -190,6 +196,18 @@ Depois rever:
 data/source-health.tsv
 docs/source-health.md
 ```
+
+Rever a memoria persistente dos scans canonicos:
+
+```powershell
+npm.cmd run sources:status
+```
+
+O ficheiro local e `data/source-runs.tsv`. `jobfinder:*:dry-run`, re-ranking de
+snapshots e avaliacao de candidatos fornecidos nao o alteram. Um alerta `HIGH`
+significa tres falhas comparaveis; um `MEDIUM` de aquisicao vazia pode apenas
+significar que nao existem vagas atuais para os filtros usados. Confirmar com
+`portals:audit` e com a pagina oficial antes de alterar ou desativar uma fonte.
 
 Prioridade de correcao:
 

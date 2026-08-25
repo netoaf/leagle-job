@@ -31,6 +31,7 @@ const checks = [
       'tests/application-actions.test.mjs',
       'tests/prepare-portal-application.test.mjs',
       'tests/source-coverage-audit.test.mjs',
+      'tests/source-run-memory.test.mjs',
     ],
     cwd: projectRoot,
   },
@@ -86,6 +87,12 @@ const checks = [
     name: 'source coverage visibility',
     command: process.execPath,
     args: ['source-coverage-audit.mjs'],
+    cwd: projectRoot,
+  },
+  {
+    name: 'source-run memory readability',
+    command: process.execPath,
+    args: ['source-reliability.mjs'],
     cwd: projectRoot,
   },
   {

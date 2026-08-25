@@ -23,6 +23,7 @@ configured sources + job boards
   -> quality gate
   -> job-scoring-service.mjs
   -> scan-and-rank.mjs
+  -> atomic source-run memory (real canonical scans only)
   -> report + tracker + job index + scan history
   -> dashboard TUI
   -> application packs / CV tailoring diffs / follow-up tracking
@@ -53,6 +54,35 @@ portals.yml / job boards
 Supported source patterns include generic HTML, Greenhouse, Ashby, Lever,
 Landing.jobs, Workday, Teamtailor, Workable, SmartRecruiters, Eightfold and
 safe browser extraction for selected pages.
+
+## Source Reliability Memory
+
+Three local stores answer different questions:
+
+- `data/source-health.tsv`: the latest explicit reachability/configuration
+  audit for configured company sources.
+- `data/source-runs.tsv`: append-only, sanitized counters for comparable real
+  `scan-and-rank` source attempts.
+- `data/scan-history.tsv`: captured vacancy URLs used by dedupe and recent
+  coverage reporting.
+
+`data/source-runs.tsv` separates acquisition, usable capture, quality and fit.
+It records only the source name/type, scan profile/mode, bounded counters,
+outcome and a coarse error kind. It never stores raw errors, URLs, vacancy
+text, candidate data or credentials. The comparison key includes the contract
+version, runner, profile, mode, source type and source name.
+
+After three consecutive comparable source failures, the read-only status
+command shows a high-severity alert. Three successful but empty acquisitions
+produce a medium warning; this means "check coverage or current openings", not
+"the source is broken". A source that returns jobs with no candidate fit is
+informational and resets both streaks.
+
+Dry-run and snapshot/candidate re-ranking never write this ledger. A broad
+environment failure (at least 20 attempted sources and at least 80% network
+transport failures) writes no per-source rows, so one local outage cannot turn
+into hundreds of false source failures. Ledger replacement is atomic; a failed
+write preserves the previous bytes.
 
 ## Evaluation Flow
 

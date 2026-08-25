@@ -78,6 +78,7 @@ npm run verify
 
 # Inspect coverage honestly.
 npm run coverage:audit
+npm run sources:status
 ```
 
 For a single vacancy:

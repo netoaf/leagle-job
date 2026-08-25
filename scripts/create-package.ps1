@@ -300,6 +300,7 @@ try {
     Set-Content -LiteralPath (Join-Path $StageDir "data\applications.md") -Encoding UTF8 -Value "# Applications`r`n`r`nNo applications yet."
     Set-Content -LiteralPath (Join-Path $StageDir "data\pipeline.md") -Encoding UTF8 -Value "# Job Pipeline`r`n`r`n## Pending`r`n`r`n## Processed"
     Set-Content -LiteralPath (Join-Path $StageDir "data\scan-history.tsv") -Encoding UTF8 -Value "url`tfirst_seen`tportal`ttitle`tcompany`tstatus"
+    Set-Content -LiteralPath (Join-Path $StageDir "data\source-runs.tsv") -Encoding UTF8 -Value "timestamp`trun_id`tcontract_version`trunner`tprofile`tmode`tsource`tsource_type`toutcome`tdiscovered`tcaptured`tqualified`tselected`terror_kind"
     Set-Content -LiteralPath (Join-Path $StageDir "data\job-index.jsonl") -Encoding UTF8 -Value ""
     Set-Content -LiteralPath (Join-Path $StageDir "data\application-followups.tsv") -Encoding UTF8 -Value "application_id`tcompany`trole`tstatus`tlast_contact_at`tnext_follow_up_at`tnotes"
 

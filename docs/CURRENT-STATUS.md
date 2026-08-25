@@ -1,6 +1,6 @@
 # Current Leagle Job Status
 
-Last reconciled: 2026-08-24
+Last reconciled: 2026-08-25
 
 ## Scope of this document
 
@@ -29,6 +29,10 @@ unless that exact revision contains it.
   Gitleaks binary or an explicitly configured executable.
 - Atomic source-health replacement with an environment-failure guard. A broad
   network outage cannot replace the last usable canonical source snapshot.
+- Atomic, sanitized per-source run memory for real canonical scans. It keeps
+  acquisition, capture, quality and fit separate; alerts after three
+  comparable failures or empty acquisitions; and advances no source streak
+  during a broad environment outage.
 - Optional Codex/Gmail integration. When explicitly enabled and every gate
   passes, it may create an unsent Gmail draft with its deterministic local CV
   attachment. It never sends email or submits an application.
@@ -57,6 +61,9 @@ session are available at a later time.
 
 - Discovery coverage is **DEGRADED** until a current coverage audit proves
   otherwise. A configured source is not evidence that it produced a valid job.
+- Persistent source-run memory currently covers only the canonical
+  `scan-and-rank` path. Structured deep search and browser/manual imports stay
+  excluded until they expose the same acquisition/capture/fit contract.
 - LinkedIn, Indeed and IEFP are not all first-class executable Node scanners;
   use authenticated/manual discovery only as supplemental, user-controlled
   input and verify the official vacancy before any action.
@@ -77,10 +84,10 @@ session are available at a later time.
 
 ## Next engineering priorities
 
-1. Record comparable source runs and alert only after three consecutive
-   source-specific failures; never count a broad environment outage as 184
-   independent failures.
-2. Split source reporting into acquisition, valid capture and candidate fit so
-   a working source with no current match is not reported as broken.
+1. Dogfood the new source-run memory in real Portugal-first scans and adjust
+   thresholds only from observed noise; zero acquisition remains a coverage
+   warning, not proof of a broken portal.
+2. Normalize acquisition/capture/fit counters in structured deep search and
+   other scanners before allowing them to write the same ledger.
 3. Extend the tested atomic persistence boundary one store at a time before
    considering any database migration or additional automation.

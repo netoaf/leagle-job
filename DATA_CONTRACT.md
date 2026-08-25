@@ -21,6 +21,7 @@ These files contain your personal data, customizations, and work product. Update
 | `data/application-actions.tsv` | Your local action/channel tracker before applying |
 | `data/pipeline.md` | Your URL inbox |
 | `data/scan-history.tsv` | Your scan history |
+| `data/source-runs.tsv` | Sanitized per-source scan counters and reliability streak evidence |
 | `data/email-drafts.tsv` | Your local email draft tracker |
 | `data/gmail-events.tsv` | Idempotent sent/reply events imported from Gmail |
 | `data/application-followups.tsv` | Follow-up dates, Gmail thread IDs and recommended next actions |
