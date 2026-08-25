@@ -69,9 +69,21 @@ Run the separate coverage check after a health refresh:
 npm run coverage:audit
 ```
 
-Coverage reads the recent qualified URLs in `data/scan-history.tsv` for
-LinkedIn, Indeed, IEFP Online, ITJobs and Net-Empregos. A `healthy` source does
-not increase coverage by itself; a `DEGRADED` result is a visibility warning,
+Coverage reads both the recent host-based URLs in `data/scan-history.tsv` and
+the local explicit discovery evidence in `data/source-captures.tsv` for
+LinkedIn, Indeed, IEFP Online, ITJobs and Net-Empregos. Use the single-URL
+workflow after manually or authentically discovering a candidate and verifying
+its official vacancy:
+
+```bash
+npm run evaluate-url -- --url "https://company.example/careers/job/42" --discovered-via LinkedIn --write
+```
+
+The stored URL remains the official employer/ATS URL; the named job-board lane
+is kept separately. Re-checking the same lane and official URL replaces its
+local row, so coverage cannot be inflated by retries. A `healthy` source does
+not increase coverage by itself, and a low-fit or low-quality capture does not
+count as qualified coverage. A `DEGRADED` result remains a visibility warning,
 not proof that the source is closed.
 
 Generate a safe cleanup plan from the latest source-health data:

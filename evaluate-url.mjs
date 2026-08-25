@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { mkdirSync, writeFileSync } from 'fs';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { loadJobFinderConfigs } from './lib/config-loader.mjs';
 import { enrichJob } from './lib/job-enrichment.mjs';
@@ -15,6 +15,11 @@ import {
   loadBrowserAgentConfig,
   validateBrowserAgentConfig,
 } from './lib/browser-agent/safety.mjs';
+import {
+  deriveSourceCaptureStatus,
+  normalizeDiscoveryLane,
+  recordSourceCapture,
+} from './lib/source-provenance.mjs';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -24,6 +29,7 @@ async function main() {
     printUsage();
     process.exit(1);
   }
+  const discoveryLane = resolveDiscoveryLane(options.discoveredVia);
 
   const browserConfig = loadBrowserAgentConfig(projectRoot);
   const browserValidation = validateBrowserAgentConfig(browserConfig);
@@ -63,6 +69,16 @@ async function main() {
     });
   }
 
+  const provenance = persistEvaluateUrlProvenance({
+    projectRoot,
+    options: { ...options, discoveredVia: discoveryLane },
+    extraction,
+    job,
+    quality,
+    evaluation,
+    minScore: options.minScore,
+  });
+
   let dashboard = null;
   if (options.dashboard) {
     dashboard = await runScanAndRank({
@@ -88,10 +104,10 @@ async function main() {
     });
   }
 
-  printResult({ extraction, job, quality, evaluation, artifacts, dashboard }, options.json);
+  printResult({ extraction, job, quality, evaluation, artifacts, provenance, dashboard }, options.json);
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const options = {
     url: '',
     visible: false,
@@ -99,6 +115,7 @@ function parseArgs(argv) {
     dashboard: false,
     json: false,
     minScore: undefined,
+    discoveredVia: '',
   };
 
   for (let index = 0; index < argv.length; index++) {
@@ -109,11 +126,44 @@ function parseArgs(argv) {
     else if (arg === '--dashboard') options.dashboard = true;
     else if (arg === '--json') options.json = true;
     else if (arg === '--min-score') options.minScore = Number(argv[++index]);
+    else if (arg === '--discovered-via') options.discoveredVia = argv[++index] || '';
     else if (!options.url && /^https?:\/\//i.test(arg)) options.url = arg;
     else if (!options.url && /^data:/i.test(arg)) options.url = arg;
   }
 
   return options;
+}
+
+export function resolveDiscoveryLane(value) {
+  if (!String(value || '').trim()) return '';
+  const lane = normalizeDiscoveryLane(value);
+  if (!lane) throw new Error('Use a supported --discovered-via lane: LinkedIn, Indeed, IEFP Online, ITJobs or Net-Empregos.');
+  return lane;
+}
+
+export function persistEvaluateUrlProvenance({
+  projectRoot: root = projectRoot,
+  options = {},
+  extraction = {},
+  job = {},
+  quality = {},
+  evaluation = null,
+  minScore,
+} = {}) {
+  if (!options.write && !options.dashboard) return null;
+  const lane = resolveDiscoveryLane(options.discoveredVia);
+  if (!lane) return null;
+
+  return recordSourceCapture({
+    projectRoot: root,
+    discoveredVia: lane,
+    canonicalUrl: job.canonical_url || extraction.final_url || job.link,
+    company: job.company,
+    title: job.title,
+    status: deriveSourceCaptureStatus({ quality, evaluation, minScore }),
+    qualityScore: quality.quality_score,
+    fitScore: evaluation?.score,
+  });
 }
 
 function writeEvaluateUrlArtifacts(root, payload) {
@@ -177,7 +227,7 @@ function printResult(result, asJson) {
     return;
   }
 
-  const { extraction, job, quality, evaluation, artifacts, dashboard } = result;
+  const { extraction, job, quality, evaluation, artifacts, provenance, dashboard } = result;
   console.log('\nEvaluate URL complete');
   console.log(`URL: ${extraction.final_url || extraction.requested_url}`);
   console.log(`HTTP: ${extraction.http_status || 'a confirmar'}`);
@@ -208,6 +258,13 @@ function printResult(result, asJson) {
     console.log('Artifacts: not written. Add --write to save evaluation files.');
   }
 
+  if (provenance) {
+    const replacement = provenance.replaced ? 'updated' : 'recorded';
+    console.log(`Discovery provenance: ${provenance.capture.discovered_via} ${replacement} for the verified official URL.`);
+  } else {
+    console.log('Discovery provenance: not written. Add --discovered-via with --write or --dashboard after verified discovery.');
+  }
+
   if (dashboard) {
     if (dashboard.written.length > 0) {
       console.log('\nDashboard writes:');
@@ -232,10 +289,12 @@ Usage:
   node evaluate-url.mjs --url "https://example.com/job"
   node evaluate-url.mjs --url "https://example.com/job" --write
   node evaluate-url.mjs --url "https://example.com/job" --write --dashboard
+  node evaluate-url.mjs --url "https://official.example/job" --discovered-via LinkedIn --write
 
 Flags:
   --write       Save extraction + scoring artifacts under output/evaluate-url/
   --dashboard   Promote selected jobs to reports/ and data/applications.md
+  --discovered-via <lane>  Record verified discovery from LinkedIn, Indeed, IEFP Online, ITJobs or Net-Empregos when writing
   --visible     Open a visible browser for debugging
   --json        Print JSON output
   --min-score N Override dashboard write threshold
@@ -251,7 +310,9 @@ function asArray(value) {
   return [value];
 }
 
-main().catch((error) => {
-  console.error(`\nEvaluate URL failed: ${error.message}`);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(`\nEvaluate URL failed: ${error.message}`);
+    process.exit(1);
+  });
+}

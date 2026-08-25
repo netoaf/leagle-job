@@ -87,6 +87,13 @@ For a single vacancy:
 npm run evaluate-url -- --url "https://example.com/job"
 ```
 
+If it was found through a named manual lane, preserve that fact only after the
+official vacancy is verified:
+
+```powershell
+npm run evaluate-url -- --url "https://company.example/careers/job/42" --discovered-via LinkedIn --write
+```
+
 Open the dashboard with `./run-dashboard.ps1`, or build it from `dashboard/`
 when Go is available.
 
