@@ -3,6 +3,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { isQualifiedSourceCapture, loadSourceCaptures } from './lib/source-provenance.mjs';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -18,6 +19,11 @@ export function auditSourceCoverage(options = {}) {
     const parsed = new Date(`${row.first_seen || ''}T00:00:00Z`);
     return !Number.isNaN(parsed.valueOf()) && parsed >= cutoff && parsed <= now;
   });
+  const sourceCaptureStore = loadSourceCaptures(root);
+  const recentSourceCaptures = sourceCaptureStore.captures.filter((capture) => {
+    const parsed = new Date(capture.captured_at || '');
+    return !Number.isNaN(parsed.valueOf()) && parsed >= cutoff && parsed <= now;
+  });
 
   const lanes = [
     { id: 'linkedin', label: 'LinkedIn', domains: ['linkedin.com'], minimum: 5 },
@@ -26,9 +32,25 @@ export function auditSourceCoverage(options = {}) {
     { id: 'itjobs', label: 'ITJobs', domains: ['itjobs.pt'], minimum: 3 },
     { id: 'net_empregos', label: 'Net-Empregos', domains: ['net-empregos.com'], minimum: 3 },
   ].map((lane) => {
-    const laneRows = uniqueByUrl(recent.filter((row) => lane.domains.some((domain) => hostname(row.url).includes(domain))));
+    const historyRows = recent
+      .filter((row) => lane.domains.some((domain) => hostname(row.url).includes(domain)))
+      .map((row) => ({
+        url: row.url,
+        status: row.status,
+        observed_at: `${row.first_seen || ''}T00:00:00.000Z`,
+        qualified: isQualifiedCapture(row.status),
+      }));
+    const provenanceRows = recentSourceCaptures
+      .filter((capture) => capture.discovered_via === lane.id)
+      .map((capture) => ({
+        url: capture.canonical_url,
+        status: capture.status,
+        observed_at: capture.captured_at,
+        qualified: isQualifiedSourceCapture(capture),
+      }));
+    const laneRows = latestByUrl([...historyRows, ...provenanceRows]);
     const capturedCount = laneRows.length;
-    const qualifiedCount = laneRows.filter((row) => isQualifiedCapture(row.status)).length;
+    const qualifiedCount = laneRows.filter((row) => row.qualified === true).length;
     return {
       ...lane,
       count: capturedCount,
@@ -51,6 +73,7 @@ export function auditSourceCoverage(options = {}) {
   const browserUseEnabled = /^enabled:\s*true\s*$/m.test(browserUse);
   const localExtensionPresent = existsSync(join(root, 'extension', 'manifest.json'));
   const warnings = [];
+  for (const warning of sourceCaptureStore.warnings) warnings.push(`Source-capture evidence: ${warning}`);
   for (const lane of lanes.filter((item) => item.status !== 'covered')) {
     warnings.push(`${lane.label} has ${lane.captured_count} captured and only ${lane.qualified_count} qualified URL(s) in the last ${days} days; target is ${lane.minimum} qualified.`);
   }
@@ -62,7 +85,12 @@ export function auditSourceCoverage(options = {}) {
     audited_at: now.toISOString(),
     days,
     history_total: history.length,
-    recent_total: recent.length,
+    recent_total: latestByUrl([
+      ...recent.map((row) => ({ url: row.url, observed_at: `${row.first_seen || ''}T00:00:00.000Z` })),
+      ...recentSourceCaptures.map((row) => ({ url: row.canonical_url, observed_at: row.captured_at })),
+    ]).length,
+    source_capture_total: sourceCaptureStore.captures.length,
+    recent_source_capture_total: recentSourceCaptures.length,
     lanes,
     source_health: {
       total: sourceHealth.length,
@@ -96,14 +124,19 @@ function hostname(value) {
   }
 }
 
-function uniqueByUrl(rows) {
-  const seen = new Set();
-  return rows.filter((row) => {
+function latestByUrl(rows) {
+  const latest = new Map();
+  for (const row of rows) {
     const key = String(row.url || '').trim().toLowerCase();
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    if (!key) continue;
+    const existing = latest.get(key);
+    const observedAt = new Date(row.observed_at || '');
+    const existingAt = new Date(existing?.observed_at || '');
+    if (!existing || (!Number.isNaN(observedAt.valueOf()) && (Number.isNaN(existingAt.valueOf()) || observedAt >= existingAt))) {
+      latest.set(key, row);
+    }
+  }
+  return [...latest.values()];
 }
 
 function isQualifiedCapture(status) {
@@ -127,7 +160,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const result = auditSourceCoverage(options);
   if (options.json) console.log(JSON.stringify(result, null, 2));
   else {
-    console.log(`Source coverage: ${result.status.toUpperCase()} (${result.recent_total} recent URLs / ${result.history_total} total)`);
+    console.log(`Source coverage: ${result.status.toUpperCase()} (${result.recent_total} recent URLs; ${result.recent_source_capture_total} explicit discovery capture(s); ${result.history_total} historical URL(s))`);
     for (const lane of result.lanes) console.log(`- ${lane.label}: ${lane.captured_count} captured / ${lane.qualified_count} qualified (${lane.status})`);
     for (const warning of result.warnings) console.log(`WARNING: ${warning}`);
   }

@@ -33,6 +33,9 @@ unless that exact revision contains it.
   acquisition, capture, quality and fit separate; alerts after three
   comparable failures or empty acquisitions; and advances no source streak
   during a broad environment outage.
+- Explicit, local discovery provenance for supported manual lanes. A verified
+  official vacancy can retain that it was found through LinkedIn, Indeed, IEFP
+  Online, ITJobs or Net-Empregos without replacing its official URL.
 - Optional Codex/Gmail integration. When explicitly enabled and every gate
   passes, it may create an unsent Gmail draft with its deterministic local CV
   attachment. It never sends email or submits an application.
@@ -67,6 +70,9 @@ session are available at a later time.
 - LinkedIn, Indeed and IEFP are not all first-class executable Node scanners;
   use authenticated/manual discovery only as supplemental, user-controlled
   input and verify the official vacancy before any action.
+- Discovery provenance is intentionally recorded only through an explicit
+  evaluated URL write or dashboard promotion. It does not turn a browser
+  session, a search result or a low-fit vacancy into qualified coverage.
 - The operational store is currently Markdown, TSV and JSONL. Source-health
   replacement is atomic; the remaining stores have integrity checks but no
   transaction spanning every file write.
@@ -84,9 +90,8 @@ session are available at a later time.
 
 ## Next engineering priorities
 
-1. Restore measurable discovery coverage across LinkedIn, Indeed, IEFP Online,
-   ITJobs and Net-Empregos. Preserve the discovery lane separately, then
-   verify the official vacancy before any dashboard write.
+1. Dogfood explicit discovery provenance in real Portugal-first research and
+   measure recovered coverage without weakening vacancy verification.
 2. Dogfood the new source-run memory in real Portugal-first scans and adjust
    thresholds only from observed noise; zero acquisition remains a coverage
    warning, not proof of a broken portal.
