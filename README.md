@@ -22,6 +22,12 @@
 > Built on [Career-Ops](https://github.com/santifer/career-ops) by Santiago Fernández
 > de Valderrama (MIT). The original license, citation and authorship are preserved.
 
+<p align="center">
+  <img src="docs/scoring.png" alt="Three example vacancies scored on seven factors: an internship scores 83 (apply), a support role 51 (review), a disguised sales offer 0 (discard)" width="900">
+</p>
+
+<p align="center"><sub>Real output of the scoring engine on the three vacancies in <code>examples/jobs/</code>. Reproduce it with <code>node job-scoring-service.mjs examples/jobs/good-internship.yml</code>.</sub></p>
+
 ## Why it exists
 
 Job boards in Portugal are scattered across company portals, ATS platforms and
@@ -45,6 +51,30 @@ before anything leaves your machine.
 
 **56 unit tests** cover network safety, adapters, normalisation, deduplication,
 scoring and CV selection. Writing them exposed and fixed two real defects.
+
+## How a vacancy is scored
+
+Every vacancy is scored out of 100 on seven weighted factors. The weights live in
+`config/scoring.yml`, so each candidate can tune them.
+
+| Factor | Weight | What it rewards |
+| --- | ---: | --- |
+| Role fit | 20 | The role matches the target level and track |
+| Tech stack | 20 | Overlap with the skills in the candidate profile |
+| Mentorship | 20 | Explicit onboarding, tutoring or training |
+| Progression | 15 | A visible path beyond the first contract |
+| Location | 10 | Reachable office or a workable remote setup |
+| Pay | 10 | A stated salary or stipend |
+| Credibility | 5 | A real, verifiable company |
+
+Two safety layers sit on top of the weighted score:
+
+- **Penalties** subtract points for red flags such as no mentorship (-15),
+  a suspicious company (-30) or sales disguised as IT (-40).
+- **Hard blockers** force a discard whatever the score: scams, senior-only
+  roles, requests for private data, fake junior roles and five more.
+
+The final verdict: **75+ apply**, **50 to 74 review**, **below 50 discard**.
 
 ## How it works
 
