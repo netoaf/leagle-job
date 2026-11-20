@@ -1,136 +1,128 @@
-# Leagle Job
+<p align="center">
+  <img src="docs/leagle-job-banner.svg" alt="Leagle Job" width="800">
+</p>
 
-Leagle Job is a local-first, Portugal-first job-search pipeline based on
-[Career-Ops](https://github.com/santifer/career-ops). It finds and evaluates
-jobs, keeps an auditable local pipeline and prepares application material for
-human review.
+<p align="center">
+  <strong>A local job-search pipeline for internships and junior roles in Portugal.</strong><br>
+  It finds, verifies and ranks vacancies. You make every decision.
+</p>
 
-It is deliberately conservative: it does not submit applications, send email
-or upload CVs. An optional, explicitly configured Codex/Gmail bridge can create
-an **unsent** Gmail draft only after every local safety gate passes.
+<p align="center">
+  <a href="https://github.com/netoaf/leagle-job/actions/workflows/ci.yml"><img src="https://github.com/netoaf/leagle-job/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white" alt="Playwright">
+  <img src="https://img.shields.io/badge/Go-00ADD8?logo=go&logoColor=white" alt="Go">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT">
+</p>
 
-## What is implemented
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.es.md">Español</a>
+</p>
 
-- Job discovery from supported boards, ATS platforms and company career pages.
-- Evidence-preserving normalization, quality filtering and multi-key
-  deduplication.
-- Deterministic 0--100 score for role fit, technical stack, mentorship,
-  progression, location/work mode, compensation and clarity.
-- Markdown reports, application packs, deterministic CV selection and
-  follow-up tracking.
-- A local Go terminal dashboard for browsing results and updating status.
-- Network safety for HTTP and browser extraction: public-address validation,
-  redirect checks and bounded requests.
-- Optional, fail-closed Gmail draft and portal-preparation workflows.
+> Built on [Career-Ops](https://github.com/santifer/career-ops) by Santiago Fernández
+> de Valderrama (MIT). The original license, citation and authorship are preserved.
 
-## What it does not claim to do
+<p align="center">
+  <img src="docs/scoring.png" alt="Three example vacancies scored on seven factors: an internship scores 83 (apply), a support role 51 (review), a disguised sales offer 0 (discard)" width="900">
+</p>
 
-- It is not a hosted service, web app, API or multi-user system.
-- It has no database, ORM, scheduler, Docker deployment or automatic job
-  application flow.
-- A configured source is not proof of current coverage; run the coverage audit
-  before claiming broad discovery.
-- LinkedIn, Indeed and IEFP are supplemental/manual lanes, not all
-  first-class Node scanners.
-- Codex, a Gmail connector and a browser session are optional integrations, not
-  prerequisites for search, ranking, tracking or the dashboard.
+<p align="center"><sub>Real output of the scoring engine on the three vacancies in <code>examples/jobs/</code>. Reproduce it with <code>node job-scoring-service.mjs examples/jobs/good-internship.yml</code>.</sub></p>
 
-## Quick start
+## Why it exists
 
-Prerequisites: Node.js 18 or later; Playwright Chromium for browser-based
-verification; Go 1.24.2 or later only when building the dashboard.
+Job boards in Portugal are scattered across company portals, ATS platforms and
+local boards. Generic AI job tools optimise for volume and act on your behalf.
+Leagle Job does the opposite: it gathers evidence, scores fit honestly and stops
+before anything leaves your machine.
 
-```powershell
-npm install
+**It never submits applications, uploads CVs or sends emails.**
+
+## What I added to Career-Ops
+
+| Area | Contribution |
+| --- | --- |
+| **Portugal-first scanning** | Scan profiles with regional quotas, plus adapters for local boards and Eightfold career sites |
+| **Evidence-based scoring** | Fit is scored only against confirmed candidate evidence, never invented skills |
+| **CV selection** | Picks the strongest existing CV variant per vacancy and shows the diff for review |
+| **Safe fetching** | Every HTTP call and Playwright fallback goes through a network guard that blocks private and unsafe targets |
+| **Source health** | Audits every portal for dead URLs, blocks and missing adapters before a scan runs |
+| **Privacy gates** | Candidate data, reports and runtime output stay local and are excluded from Git by contract |
+| **Release discipline** | Least-privilege CI with pinned actions and full-history secret scanning |
+
+**56 unit tests** cover network safety, adapters, normalisation, deduplication,
+scoring and CV selection. Writing them exposed and fixed two real defects.
+
+## How a vacancy is scored
+
+Every vacancy is scored out of 100 on seven weighted factors. The weights live in
+`config/scoring.yml`, so each candidate can tune them.
+
+| Factor | Weight | What it rewards |
+| --- | ---: | --- |
+| Role fit | 20 | The role matches the target level and track |
+| Tech stack | 20 | Overlap with the skills in the candidate profile |
+| Mentorship | 20 | Explicit onboarding, tutoring or training |
+| Progression | 15 | A visible path beyond the first contract |
+| Location | 10 | Reachable office or a workable remote setup |
+| Pay | 10 | A stated salary or stipend |
+| Credibility | 5 | A real, verifiable company |
+
+Two safety layers sit on top of the weighted score:
+
+- **Penalties** subtract points for red flags such as no mentorship (-15),
+  a suspicious company (-30) or sales disguised as IT (-40).
+- **Hard blockers** force a discard whatever the score: scams, senior-only
+  roles, requests for private data, fake junior roles and five more.
+
+The final verdict: **75+ apply**, **50 to 74 review**, **below 50 discard**.
+
+## How it works
+
+```text
+ sources ──► safe fetch ──► normalise + dedupe ──► score against evidence
+                                                         │
+          you review ◄── report + CV variant + tracker ◄─┘
+```
+
+The last live audit checked **184 sources**: 158 healthy, the rest flagged for
+repair before they could pollute a scan.
+
+## Run it
+
+```bash
+git clone https://github.com/netoaf/leagle-job.git
+cd leagle-job && npm ci
 npx playwright install chromium
 npm run doctor
-npm run jobfinder:health
 ```
 
-Create personal files from the templates only when they do not already exist:
+Copy the example configs in `config/` and `templates/portals.example.yml`, add
+your CV as `cv.md`, then:
 
-```powershell
-Copy-Item config/profile.example.yml config/profile.yml
-Copy-Item config/scoring.example.yml config/scoring.yml
-Copy-Item config/jobfinder-rules.example.yml config/jobfinder-rules.yml
-Copy-Item templates/portals.example.yml portals.yml
-Copy-Item modes/_profile.template.md modes/_profile.md
+```bash
+npm run jobfinder:pt:dry-run -- --limit 30   # preview, writes nothing
+npm run jobfinder:pt -- --limit 30           # rank and record new matches
+npm run portals:audit                        # check source health
+npm test                                     # full health check
 ```
 
-These files, together with your CV, reports and tracker, are the local User
-Layer. They are ignored by Git and must not be bundled in a release. See
-[DATA_CONTRACT.md](DATA_CONTRACT.md).
+On Windows, `setup.bat` installs everything; see [COMECE-AQUI.md](COMECE-AQUI.md).
 
-## Everyday workflow
+AI-assisted modes (single evaluation, batch, PDF, tracker) run from Claude Code,
+OpenCode or Codex with `/career-ops`. See [docs/SETUP.md](docs/SETUP.md) and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-```powershell
-# Confirm local health first.
-npm run jobfinder:health
+## Stack
 
-# Search Portugal-first without writing user data.
-npm run leagle:new:dry-run -- --limit 80
+Node.js scanners and pipeline · Playwright for rendering and PDF · Go + Bubble Tea
+terminal dashboard · Markdown, YAML and TSV as the data layer.
 
-# Write only a small, reviewed batch.
-npm run leagle:new -- --limit 80 --write-limit 5
+## Responsible use
 
-# Reconcile tracker, reports and ledgers.
-npm run verify
+Scores are decision support, not facts. Review every CV and message before you
+send it, and respect each portal's terms of service. Full terms in
+[LEGAL_DISCLAIMER.md](LEGAL_DISCLAIMER.md).
 
-# Inspect coverage honestly.
-npm run coverage:audit
-npm run sources:status
-```
+## License
 
-For a single vacancy:
-
-```powershell
-npm run evaluate-url -- --url "https://example.com/job"
-```
-
-If it was found through a named manual lane, preserve that fact only after the
-official vacancy is verified:
-
-```powershell
-npm run evaluate-url -- --url "https://company.example/careers/job/42" --discovered-via LinkedIn --write
-```
-
-Open the dashboard with `./run-dashboard.ps1`, or build it from `dashboard/`
-when Go is available.
-
-## Safety boundary
-
-- Human approval is required before every final send or submit action.
-- Unknown candidate facts remain `a confirmar`; the tool must not invent skills,
-  seniority, credentials, metrics or eligibility.
-- A Gmail draft requires a confirmed recipient, selected attachment, fresh
-  Playwright proof of an active official vacancy and a passing review chain.
-- Portal preparation may fill only confirmed fields. It stops before upload,
-  CAPTCHA, consent choices, sensitive identifiers and final submission.
-
-## Documentation map
-
-- [Current product status](docs/CURRENT-STATUS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Operational runbook](docs/operational-runbook.md)
-- [Application actions](docs/application-actions.md)
-- [Gmail draft boundary](docs/gmail-adapter.md)
-- [Codex routing](docs/CODEX.md)
-- [User/system data contract](DATA_CONTRACT.md)
-
-## Development checks
-
-```powershell
-npm run test:unit
-npm test
-npm run jobfinder:health
-npm run verify
-```
-
-Use the exact checkout being released when running these commands. Public CI is
-only evidence for the revision it actually builds.
-
-## Attribution and licence
-
-Leagle Job is a local adaptation of Career-Ops by Santiago Fernández de
-Valderrama. Preserve the upstream MIT licence, citation and attribution files
-when redistributing or extending this project.
+MIT. Third-party notices in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
