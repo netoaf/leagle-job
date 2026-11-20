@@ -12,6 +12,7 @@ import { appendJobIndex, addJobToLookup, createEmptyJobLookup, findJobInLookup, 
 import { evaluateJobQuality, loadQualityGateConfig } from './lib/job-quality-gate.mjs';
 import { extractJobDescriptionMax } from './lib/job-description-extractor.mjs';
 import { loadBrowserAgentConfig, validateBrowserAgentConfig } from './lib/browser-agent/safety.mjs';
+import { recordSourceRunMemory } from './lib/source-run-memory.mjs';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -107,7 +108,28 @@ export async function runScanAndRank(options = {}) {
     appendScanHistory(root, ranked, qualityRejected, minScore);
   }
 
+  result.source_reliability = recordSourceRunMemory(
+    buildSourceRunMemoryInput(root, scan, options, qualityPassed, selected),
+  );
+
   return result;
+}
+
+export function buildSourceRunMemoryInput(root, scan, options, qualityPassed, selected) {
+  const timestamp = scan.scanned_at || new Date().toISOString();
+  return {
+    project_root: root,
+    timestamp,
+    run_id: timestamp,
+    runner: 'scan-and-rank',
+    profile: scan.profile || options.profile || 'unknown',
+    mode: scan.scan_mode || (options.includeSeen ? 'audit' : 'new-only'),
+    source_stats: scan.source_stats || [],
+    qualified_jobs: qualityPassed || [],
+    selected_jobs: selected || [],
+    dry_run: Boolean(options.dryRun),
+    replay_input: Boolean(options.snapshot || options.candidates || options.fromSnapshot),
+  };
 }
 
 async function maybeMaxExtractWeakJobs(jobs, context) {
@@ -434,11 +456,12 @@ function buildApplicationMessage(job, evaluation, configs, language) {
   const name = candidate.full_name || 'Candidate';
   const confirmedSkills = getConfirmedSkills(configs);
   const matchedSkills = asArray(job.stack_required).filter((tech) =>
-    confirmedSkills.some((skill) => normalizeText(skill) === normalizeText(tech) || normalizeText(skill).includes(normalizeText(tech)) || normalizeText(tech).includes(normalizeText(skill))));
+    confirmedSkills.some((skill) => isConfirmedSkillMatch(skill, tech)));
   const skillsText = sanitizeSkillsForDraft(matchedSkills.length > 0 ? matchedSkills : confirmedSkills.slice(0, 6), language).join(', ');
+  const applicationRole = applicationFacingRole(job);
   const subject = language === 'pt'
-    ? `Assunto: Candidatura - ${job.title}`
-    : `Subject: Application - ${job.title}`;
+    ? `Assunto: Candidatura - ${applicationRole}`
+    : `Subject: Application - ${applicationRole}`;
   const isInternshipLike = looksInternshipLike(job);
   const cautionLine = evaluation.recommendation === 'maybe'
     ? (language === 'pt'
@@ -462,7 +485,7 @@ function buildApplicationMessage(job, evaluation, configs, language) {
 
 Boa tarde,
 
-${intro} Tenho interesse na vaga de ${job.title} porque procuro ${targetFraming}.
+${intro} Tenho interesse na vaga de ${applicationRole} porque procuro ${targetFraming}.
 
 Tenho bases praticas confirmadas em ${skillsText}. ${privateProjectLine}
 
@@ -484,7 +507,7 @@ ${name}`;
 
 Hello,
 
-${intro} I am interested in the ${job.title} role because I am looking for ${targetFraming}.
+${intro} I am interested in the ${applicationRole} role because I am looking for ${targetFraming}.
 
 I have confirmed practical foundations in ${skillsText}. ${privateProjectLine}
 
@@ -496,6 +519,20 @@ Best regards,
 ${name}`;
 }
 
+export function applicationFacingRole(job = {}) {
+  const title = normalizeWhitespace(job.title || 'a confirmar');
+  const normalized = normalizeText(title);
+  if (!normalized.includes('senior') || !normalized.includes('junior')) return title;
+
+  const juniorTitle = title
+    .replace(/s(?:e|\u00e9)nior\s*\/\s*junior/iu, 'Junior')
+    .replace(/senior\s*(?:e|and|&)\s*junior/iu, 'Junior');
+  const description = normalizeWhitespace(job.description || '');
+  const reference = description.match(/junior\s*-?\s*refer(?:e|\u00ea)ncia\s*-?\s*([A-Z0-9-]+)/iu)?.[1];
+
+  return reference ? `${juniorTitle} (ref. ${reference})` : juniorTitle;
+}
+
 function looksInternshipLike(job) {
   const text = normalizeText(`${job.title || ''} ${job.description || ''}`);
   return ['intern', 'internship', 'trainee', 'estagio', 'estagiario', 'iefp', 'graduate program'].some((needle) => text.includes(needle));
@@ -504,7 +541,7 @@ function looksInternshipLike(job) {
 function buildCvAdjustments(job, evaluation, configs) {
   const skills = getConfirmedSkills(configs);
   const matched = asArray(job.stack_required).filter((tech) =>
-    skills.some((skill) => normalizeText(skill) === normalizeText(tech) || normalizeText(skill).includes(normalizeText(tech)) || normalizeText(tech).includes(normalizeText(skill))));
+    skills.some((skill) => isConfirmedSkillMatch(skill, tech)));
   const adjustments = [
     'Manter posicionamento junior/estagio; nao apresentar perfil mid-level ou senior.',
     'Nao inventar experiencia, certificados, metricas, clientes, links ou projetos.',
@@ -652,6 +689,7 @@ function loadSnapshot(file, root = projectRoot) {
 function normalizeScanInput(parsed = {}) {
   return {
     scanned_at: parsed.scanned_at || new Date().toISOString(),
+    profile: parsed.profile || 'unknown',
     scan_mode: parsed.scan_mode || 'single-url',
     known_index_size: parsed.known_index_size,
     candidates: parsed.candidates || [],
@@ -719,6 +757,7 @@ function printResult(result, dryRun) {
   }
 
   printSourceStats(result.source_stats || []);
+  printSourceReliability(result.source_reliability);
 
   if (!dryRun && result.written.length > 0) {
     console.log('\nWritten to dashboard:');
@@ -786,6 +825,35 @@ function printSourceStats(sourceStats) {
   if (sourceStats.length > 25) console.log(`- ... ${sourceStats.length - 25} more source(s)`);
 }
 
+function printSourceReliability(memory = {}) {
+  if (!memory || memory.reason === 'dry_run' || memory.reason === 'replay_input') return;
+  if (memory.reason === 'environment_failure') {
+    console.log(`\nSource memory: not updated because this run was an environment failure (${memory.environment?.reason || 'broad network outage'}).`);
+    return;
+  }
+  if (memory.reason === 'persistence_error') {
+    console.log(`\nSource memory: WARNING - previous ledger preserved; update failed (${memory.error_code || 'SOURCE_RUN_WRITE_FAILED'}).`);
+    return;
+  }
+  if (!memory.recorded) return;
+
+  const activeCount = memory.transitions?.active?.length || 0;
+  console.log(`\nSource memory: ${memory.rows_recorded} attempted source(s) recorded; ${activeCount} active alert(s).`);
+  for (const alert of (memory.transitions?.newly_active || []).slice(0, 10)) {
+    if (alert.kind === 'source_failure') {
+      console.log(`- HIGH: ${alert.source} failed in ${alert.streak} consecutive comparable runs.`);
+    } else {
+      console.log(`- MEDIUM: ${alert.source} returned zero matching jobs in ${alert.streak} consecutive comparable runs; it may simply have no current openings.`);
+    }
+  }
+  for (const alert of (memory.transitions?.resolved || []).slice(0, 10)) {
+    console.log(`- RESOLVED: ${alert.source} no longer has an active ${alert.kind} streak.`);
+  }
+  for (const warning of (memory.warnings || []).slice(0, 5)) {
+    console.log(`- LEDGER WARNING: ${warning}`);
+  }
+}
+
 function printCountSummary(summary, label) {
   const entries = Object.entries(summary || {})
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
@@ -794,7 +862,7 @@ function printCountSummary(summary, label) {
   console.log(`${label}: ${entries.map(([key, value]) => `${key}: ${value}`).join(', ')}`);
 }
 
-function inferLanguage(job) {
+export function inferLanguage(job) {
   const company = normalizeText(job.company || '');
   const portugueseContextCompanies = [
     'santander',
@@ -826,6 +894,23 @@ function inferLanguage(job) {
   if (portugueseContextCompanies.some((item) => company.includes(normalizeText(item)))) return 'pt';
   if (internationalDefaultEnglishCompanies.some((item) => company.includes(normalizeText(item)))) return 'en';
 
+  const vacancyText = ` ${normalizeText(`${job.title || ''} ${job.description || ''}`)} `;
+  const portugueseSignals = [
+    ' candidatura ', ' conhecimentos ', ' formação ', ' formacao ', ' equipa ',
+    ' estágio ', ' estagio ', ' aprendizagem ', ' desenvolvimento ', ' procuramos ',
+    ' valorizamos ', ' responsabilidades ', ' oportunidade ',
+  ];
+  const englishSignals = [
+    ' application ', ' skills ', ' team ', ' internship ', ' learning ',
+    ' development ', ' candidate ', ' responsibilities ', ' opportunity ',
+    ' experience ', ' you will ', ' we are ', ' as an intern ',
+  ];
+  const portugueseScore = portugueseSignals.filter((signal) => vacancyText.includes(signal)).length;
+  const englishScore = englishSignals.filter((signal) => vacancyText.includes(signal)).length;
+
+  if (englishScore >= portugueseScore + 2) return 'en';
+  if (portugueseScore >= englishScore + 2) return 'pt';
+
   const text = normalizeText(`${job.company} ${job.location} ${job.link} ${job.description}`);
   return /portugal|lisboa|lisbon|porto|coimbra|aveiro|braga|\.pt/.test(text) ? 'pt' : 'en';
 }
@@ -839,6 +924,23 @@ function getConfirmedSkills(configs) {
   return asArray(configs.profile.skills?.confirmed)
     .map((skill) => typeof skill === 'string' ? skill : skill?.name)
     .filter(Boolean);
+}
+
+export function isConfirmedSkillMatch(candidateSkill, vacancySkill) {
+  const candidate = normalizeText(candidateSkill).replace(/[^a-z0-9+#.]/g, '');
+  const vacancy = normalizeText(vacancySkill).replace(/[^a-z0-9+#.]/g, '');
+  if (!candidate || !vacancy) return false;
+  if (candidate === vacancy) return true;
+
+  // Only equivalences that are supported by the candidate evidence bank.
+  // Never use substring matching here: it made "JavaScript" prove "Java".
+  const aliases = new Set([
+    'sql|sqlserver',
+    'restapi|restfulapi',
+    'asp.netcoremvc|asp.netcore',
+    'entityframeworkcore|efcore',
+  ]);
+  return aliases.has(`${candidate}|${vacancy}`) || aliases.has(`${vacancy}|${candidate}`);
 }
 
 function sanitizeSkillsForDraft(skills, language) {

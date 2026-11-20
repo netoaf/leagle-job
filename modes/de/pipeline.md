@@ -1,21 +1,23 @@
 # Modus: pipeline — URL-Inbox (Second Brain)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. Use the supported local pipeline; never edit the tracker directly, upload files, send or submit.
+
 Verarbeitet URLs von Stellenanzeigen, die in `data/pipeline.md` gesammelt wurden. Der Kandidat wirft URLs ins Inbox, wann immer er eine entdeckt, und führt später `/career-ops pipeline` aus, um sie alle in einem Rutsch zu verarbeiten.
 
 ## Workflow
 
-1. **Lesen** von `data/pipeline.md` → alle Items mit `- [ ]` im Abschnitt "Pendientes" / "Pending" / "Offen" finden
-2. **Für jede offene URL**:
-   a. Nächste fortlaufende `REPORT_NUM` berechnen (in `reports/` lesen, höchste Nummer + 1)
-   b. **Stellenanzeige extrahieren** mit Playwright (`browser_navigate` + `browser_snapshot`) → WebFetch → WebSearch
-   c. Wenn die URL nicht erreichbar ist → als `- [!]` mit Notiz markieren und weitermachen
-   d. **Vollständige Auto-Pipeline ausführen**: A-F-Bewertung → Report .md → PDF (wenn Score >= 3.0) → Tracker
-   e. **Von "Offen" nach "Verarbeitet" verschieben**: `- [x] #NNN | URL | Firma | Rolle | Score/5 | PDF ✅/❌`
-3. **Bei 3+ offenen URLs** Agenten parallel starten (Agent-Tool mit `run_in_background`), um Tempo zu machen.
-4. **Am Ende** eine Zusammenfassungstabelle ausgeben:
+1. Mit `npm run jobfinder:new:dry-run` oder `evaluate-url.mjs` eine bestätigte URL prüfen.
+2. Die vorhandene Pipeline führt Extraktion, Qualitätsschranke, Deduplizierung,
+   kanonisches 0--100 Scoring und Report-Erstellung aus.
+3. Ein Schreiben in das Dashboard nur nach ausdrücklicher menschlicher Wahl
+   ausführen; keine Datei oder Tracker-Zeile manuell erzeugen.
+4. Mit `npm run verify` prüfen und nur die nächste menschliche Review-Aktion
+   anzeigen. Keine parallelen Browser-Agenten starten.
+
+Die Ergebnisübersicht verwendet den kanonischen Score und die Empfehlung:
 
 ```
-| # | Firma | Rolle | Score | PDF | Empfohlene Aktion |
+| # | Firma | Rolle | Score/100 | Empfehlung | Nächste Aktion |
 ```
 
 ## Format von pipeline.md

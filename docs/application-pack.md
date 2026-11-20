@@ -108,13 +108,13 @@ Fields:
 documents:
   cv_library:
     pt:
-      backend: "output/cv-library/PT/CV-AfonsoNeto-PT-Backend.pdf"
-      fullstack: "output/cv-library/PT/CV-AfonsoNeto-PT-Fullstack.pdf"
-      automation_qa: "output/cv-library/PT/CV-AfonsoNeto-PT-Automation-QA.pdf"
+      backend: "output/cv-library/PT/CV-PT-Backend.pdf"
+      fullstack: "output/cv-library/PT/CV-PT-Fullstack.pdf"
+      automation_qa: "output/cv-library/PT/CV-PT-Automation-QA.pdf"
     en:
-      backend: "output/cv-library/EN/CV-AfonsoNeto-EN-Backend.pdf"
-      fullstack: "output/cv-library/EN/CV-AfonsoNeto-EN-Fullstack.pdf"
-      automation_qa: "output/cv-library/EN/CV-AfonsoNeto-EN-Automation-QA.pdf"
+      backend: "output/cv-library/EN/CV-EN-Backend.pdf"
+      fullstack: "output/cv-library/EN/CV-EN-Fullstack.pdf"
+      automation_qa: "output/cv-library/EN/CV-EN-Automation-QA.pdf"
 ```
 
 For each application pack, Leagle Job estimates PT/EN and Backend/Full-stack/

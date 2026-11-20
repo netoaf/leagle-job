@@ -1,21 +1,24 @@
 # Modo: pipeline -- Inbox de URLs (Second Brain)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. Usar a pipeline local suportada; nunca editar o tracker diretamente, fazer upload, enviar ou submeter.
+
 Processa URLs de vagas acumuladas em `data/pipeline.md`. O candidato adiciona URLs quando quiser e depois executa `/career-ops pipeline` para processar todas de uma vez.
 
 ## Workflow
 
-1. **Ler** `data/pipeline.md` → buscar itens `- [ ]` na secao "Pendentes"
-2. **Para cada URL pendente**:
-   a. Calcular proximo `REPORT_NUM` sequencial (ler `reports/`, pegar o numero mais alto + 1)
-   b. **Extrair JD** usando Playwright (browser_navigate + browser_snapshot) → WebFetch → WebSearch
-   c. Se a URL nao for acessivel → marcar como `- [!]` com nota e continuar
-   d. **Executar auto-pipeline completa**: Avaliacao A-F → Report .md → PDF (se score >= 60/100) → Tracker
-   e. **Mover de "Pendentes" para "Processadas"**: `- [x] #NNN | URL | Empresa | Vaga | Score/100 | PDF ✅/❌`
-3. **Se houver 3+ URLs pendentes**, lancar agentes em paralelo (Agent tool com `run_in_background`) para maximizar velocidade.
-4. **Ao terminar**, mostrar tabela resumo:
+1. Verificar uma URL confirmada com `npm run jobfinder:new:dry-run` ou
+   `evaluate-url.mjs`.
+2. A pipeline existente executa extracao, quality gate, deduplicacao, score
+   canonico 0--100 e report.
+3. Escrever no dashboard apenas depois de escolha humana explicita; nunca criar
+   manualmente uma linha de tracker.
+4. Executar `npm run verify` e mostrar apenas a proxima acao de revisao humana.
+   Nao iniciar navegadores em paralelo.
+
+A tabela resumo usa score e recomendacao canonicos:
 
 ```
-| # | Empresa | Vaga | Score | PDF | Acao recomendada |
+| # | Empresa | Vaga | Score/100 | Recomendacao | Proxima acao |
 ```
 
 ## Formato de pipeline.md

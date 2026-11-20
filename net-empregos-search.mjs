@@ -124,6 +124,9 @@ const NEGATIVE_TERMS = [
   'design grafico',
   'designer grafico',
   'sinistros',
+  'instructional designer',
+  'formacao e-learning',
+  'tecnico de formacao',
 ];
 
 export async function runNetEmpregosSearch(options = {}) {
@@ -204,7 +207,7 @@ async function fetchJobDetails(job) {
     const html = await fetchText(job.link, 18000);
     const json = parseJsonLd(html) || {};
     const fallback = splitTitleCompany(json.title || titleFromHtml(html) || job.title);
-    const sourceText = json.description || html;
+    const sourceText = json.description || extractOfferDescription(html) || html;
     const company = json.hiringOrganization?.name || fallback.company || job.company;
     const title = fallback.title || json.title || job.title;
     const location = json.jobLocation?.address?.addressLocality || json.jobLocation?.address?.addressRegion || job.location || 'Portugal';
@@ -250,9 +253,20 @@ function isRelevant(job) {
   const text = normalizeText(`${job.title || ''} ${job.company || ''} ${job.location || ''} ${job.description || ''}`);
   if (!job.title || !job.link) return false;
   if (NEGATIVE_TERMS.some((term) => hasTerm(title, term))) return false;
+  if (isNonSoftwareProgrammingTitle(title)) return false;
   const hasTech = TECH_TERMS.some((term) => hasTerm(title, term) || hasTerm(text, term));
   const hasEarly = EARLY_TERMS.some((term) => hasTerm(title, term) || hasTerm(text, term));
   return hasTech && hasEarly;
+}
+
+function isNonSoftwareProgrammingTitle(title) {
+  return [
+    'grelhas programacao',
+    'programacao conteudos',
+    'programacao de conteudos',
+    'programador cnc',
+    'operador cnc',
+  ].some((term) => hasTerm(title, term));
 }
 
 function extractJobBlocks(html) {
@@ -269,6 +283,26 @@ function parseJsonLd(html) {
   } catch {
     return null;
   }
+}
+
+export function extractOfferDescription(html) {
+  const pageText = clean(html);
+  const startMarker = 'Detalhe da Oferta:';
+  const start = pageText.indexOf(startMarker);
+  if (start < 0) return '';
+
+  const bodyStart = start + startMarker.length;
+  const endMarkers = [
+    ' Partilhar Guardar Oferta',
+    ' Ofertas de Emprego Semelhantes:',
+    ' Receber Alertas por Email',
+  ];
+  const end = endMarkers
+    .map((marker) => pageText.indexOf(marker, bodyStart))
+    .filter((index) => index >= 0)
+    .sort((left, right) => left - right)[0] ?? pageText.length;
+
+  return pageText.slice(bodyStart, end).trim();
 }
 
 function splitTitleCompany(value) {

@@ -319,6 +319,7 @@ async function scanJobBoards(jobBoardPlan, context) {
         discovered: 0,
         accepted: 0,
         skipped: 0,
+        skip_reasons: {},
         error: 'unknown_job_board_source',
       });
       continue;
@@ -341,6 +342,7 @@ async function scanJobBoards(jobBoardPlan, context) {
         discovered: boardJobs.length,
         accepted: context.candidates.length - acceptedBefore,
         skipped: context.skipped.length - skippedBefore,
+        skip_reasons: countBy(context.skipped.slice(skippedBefore), 'reason'),
         error: '',
       });
     } catch (error) {
@@ -351,6 +353,7 @@ async function scanJobBoards(jobBoardPlan, context) {
         discovered: 0,
         accepted: 0,
         skipped: 0,
+        skip_reasons: {},
         error: error.message,
       });
     }
@@ -384,6 +387,7 @@ async function scanCompanies(companies, context) {
         discovered: discovered.length,
         accepted: context.candidates.length - acceptedBeforeCompany,
         skipped: context.skipped.length - skippedBeforeCompany,
+        skip_reasons: countBy(context.skipped.slice(skippedBeforeCompany), 'reason'),
         error: '',
       });
     } catch (error) {
@@ -394,6 +398,7 @@ async function scanCompanies(companies, context) {
         discovered: 0,
         accepted: 0,
         skipped: 0,
+        skip_reasons: {},
         error: error.message,
       });
     }

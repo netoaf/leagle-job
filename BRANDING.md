@@ -8,13 +8,14 @@
 - Previous local name: `JobFinder`
 - Upstream project: `Career-Ops`
 
-Leagle Job is Afonso Neto's local, Portugal-first adaptation of
+Leagle Job is a local, Portugal-first adaptation of
 [Career-Ops](https://github.com/santifer/career-ops), created by the upstream
 author identified in `CITATION.cff` and distributed under the MIT License.
 
 The original `LICENSE`, `CITATION.cff`, upstream links and author attribution
 must not be removed or rewritten. Claims from the original Career-Ops case
-study must always be identified as upstream results, not as Afonso's results.
+study must always be identified as upstream results, not as local product
+results.
 
 ## Compatibility policy
 

@@ -1,5 +1,7 @@
 # Modo: aplicar -- Assistente de Candidatura ao Vivo
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. Este ficheiro pode ajudar a redigir respostas, mas para antes de upload, envio ou submissão final.
+
 Modo interativo para quando o candidato esta preenchendo um formulario de candidatura no Chrome. Le o que esta na tela, carrega o contexto da avaliacao previa da vaga e gera respostas personalizadas para cada pergunta do formulario.
 
 ## Requisitos
@@ -102,9 +104,10 @@ Notas:
 ## Passo 6 -- Pos-candidatura (opcional)
 
 Se o candidato confirmar que enviou a candidatura:
-1. Atualizar status em `applications.md` de "Evaluated" para "Applied"
-2. Atualizar Bloco G do report com as respostas finais
-3. Sugerir proximo passo: `/career-ops contacto` para LinkedIn outreach
+1. Definir o estado `Applied` pelo controlo do dashboard ou workflow suportado,
+   nunca por edicao Markdown direta.
+2. Executar `npm run verify` e confirmar o registo de follow-up.
+3. Sugerir um proximo contacto humano sem o enviar.
 
 ## Scroll handling
 

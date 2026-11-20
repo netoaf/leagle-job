@@ -39,6 +39,22 @@ const SUCCESSFACTORS_SERVER_RENDERED_HTML = readFileSync(
   'utf8',
 );
 
+test('rejects access challenges instead of scoring them as vacancies', () => {
+  const result = evaluateJobQuality({
+    title: 'Additional Verification Required',
+    company: 'Security Check',
+    link: 'https://pt.indeed.com/viewjob?jk=example',
+    description: 'Verify you are human before continuing to the requested page. '.repeat(5),
+    location: 'Lisboa',
+    work_mode: 'a confirmar',
+    source: 'max_extractor',
+    http_status: 403,
+  }, DEFAULT_QUALITY_GATE);
+
+  assert.equal(result.passed, false);
+  assert.ok(result.rejection_reasons.includes('source_access_blocked'));
+});
+
 test('normalizes a synthetic job without inventing unknown facts', () => {
   const job = normalizeJob({
     title: 'Jobs: Junior Developer | Example Careers',
@@ -56,6 +72,22 @@ test('normalizes a synthetic job without inventing unknown facts', () => {
   assert.equal(job.compensation, 'a confirmar');
   assert.equal(job.mentorship, 'a confirmar');
   assert.equal(job.is_active, true);
+});
+
+test('repairs UTF-8 Portuguese text decoded as Windows-1252', () => {
+  const job = normalizeJob({
+    title: 'Administrador/a de Sistemas JÃºnior',
+    company: 'SoluÃ§Ãµes &amp; Sistemas InformÃ¡ticos',
+    location: 'Lisboa',
+    description: 'Curso Profissional IV e conhecimentos de comunicaÃ§Ãµes, redes e informÃ¡tica.',
+    link: 'https://jobs.example.test/roles/utf8',
+    source: 'synthetic fixture',
+  });
+
+  assert.equal(job.title, 'Administrador/a de Sistemas Júnior');
+  assert.equal(job.company, 'Soluções & Sistemas Informáticos');
+  assert.match(job.description, /comunicações, redes e informática/);
+  assert.equal(evaluateJobQuality(job, DEFAULT_QUALITY_GATE).passed, true);
 });
 
 test('extracts technologies with token boundaries', () => {
@@ -249,6 +281,25 @@ test('accepts an entry path when concrete mentorship evidence is present', () =>
     false,
   );
   assert.equal(result.warnings.includes('missing_compensation'), true);
+});
+
+test('accepts a bounded junior role phrase found in a generic board description', () => {
+  const result = evaluateJobQuality(normalizeJob({
+    title: 'Informática (Gestão de Redes) - Lisboa',
+    company: 'Example Systems',
+    link: 'https://jobs.example.test/roles/junior-systems',
+    description: [
+      'A empresa pretende integrar um/a Administrador/a de Sistemas Júnior.',
+      'A função inclui apoio a utilizadores, Windows, Linux, redes e hardware.',
+      'Aceita licenciatura ou Curso Profissional IV: Técnico de Informática.',
+    ].join(' '),
+    location: 'Lisboa',
+    source: 'synthetic fixture',
+    is_active: true,
+  }), DEFAULT_QUALITY_GATE);
+
+  assert.equal(result.passed, true);
+  assert.equal(result.rejection_reasons.includes('experience_heavy_without_junior_signal'), false);
 });
 
 test('detects adapters and classifies source health deterministically', async (t) => {

@@ -1,5 +1,7 @@
 # Mode : offre -- Evaluation complete A-F
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. This file adds French-language analysis context only; never edit the tracker directly, upload files, send or submit.
+
 Quand le candidat colle une offre (texte ou URL), TOUJOURS livrer les 6 blocs.
 
 ## Etape 0 -- Detection d'archetype
@@ -139,7 +141,8 @@ Sauvegarder l'evaluation complete dans `reports/{###}-{company-slug}-{YYYY-MM-DD
 (contenu complet du bloc F)
 
 ## G) Brouillons de reponses pour la candidature
-(uniquement si score >= 4.5 -- brouillons de reponses pour le formulaire de candidature)
+(uniquement si la recommandation canonique est `apply` -- brouillons pour les
+champs du formulaire qui s'arretent avant l'upload ou la soumission finale)
 
 ---
 
@@ -147,20 +150,10 @@ Sauvegarder l'evaluation complete dans `reports/{###}-{company-slug}-{YYYY-MM-DD
 (liste de 15-20 mots-cles de l'offre pour l'optimisation ATS)
 ```
 
-### 2. Enregistrer dans le tracker
+### 2. Enregistrer via la pipeline prise en charge
 
-**TOUJOURS** enregistrer dans `data/applications.md` :
-- Prochain numero sequentiel
-- Date du jour
-- Entreprise
-- Role
-- Score : moyenne du match (1-5)
-- Statut : `Evaluated`
-- PDF : non (ou oui si l'auto-pipeline a genere un PDF)
-- Report : lien relatif vers le fichier report (ex : `[001](reports/001-company-2026-01-01.md)`)
-
-**Format du tracker :**
-
-```markdown
-| # | Date | Entreprise | Role | Score | Statut | PDF | Report |
-```
+Ne jamais modifier directement une ligne du tracker. Si l'offre doit entrer
+dans le systeme, traiter son URL confirmee avec `evaluate-url.mjs` ou
+`scan-and-rank.mjs`; cette pipeline attribue le score canonique 0--100, le
+statut et le lien du report. Executer ensuite `npm run verify`. Sinon, cette
+analyse reste du materiel de revue.

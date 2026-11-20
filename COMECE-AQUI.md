@@ -31,7 +31,48 @@ npm.cmd run doctor
 npm.cmd run jobfinder:health
 ```
 
-## Primeira utilização
+## Primeira utilização sem Codex
+
+O Leagle Job funciona por comandos locais e pelo dashboard. Nenhum agente de
+IA e obrigatorio para pesquisar, avaliar, organizar ou acompanhar vagas.
+
+1. Abre PowerShell nesta pasta e confirma a saude:
+
+```powershell
+npm.cmd run jobfinder:health
+```
+
+2. Atualiza a visibilidade das fontes e confirma se a cobertura recente esta
+   suficiente antes de confiar numa pesquisa:
+
+```powershell
+npm.cmd run portals:audit
+npm.cmd run coverage:audit
+```
+
+3. Faz uma pesquisa Portugal-first sem escrever no teu tracker:
+
+```powershell
+npm.cmd run leagle:new:dry-run -- --limit 80
+```
+
+4. So depois de rever os resultados, escreve um lote pequeno e valida-o:
+
+```powershell
+npm.cmd run leagle:new -- --limit 80 --write-limit 5
+npm.cmd run verify
+```
+
+5. Abre o dashboard para rever estados, reports e follow-ups:
+
+```powershell
+.\dashboard\career-dashboard-live.exe
+```
+
+Uma pesquisa ou pack preparado nao envia emails, nao faz upload do CV e nao
+submete candidaturas. Esses passos continuam a exigir revisao e acao humana.
+
+## Utilizacao opcional com um agente
 
 Abre esta pasta num agente compatível, como Codex ou Claude Code, e escreve:
 
@@ -44,6 +85,9 @@ Depois podes colar uma oferta e pedir:
 ```text
 Avalia esta oferta com o Leagle Job: [URL ou descrição]
 ```
+
+O agente deve seguir as mesmas regras locais: apenas prepara material para
+revisao e nunca envia/submete por si.
 
 ## Privacidade
 

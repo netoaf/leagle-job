@@ -42,7 +42,6 @@ func ParseApplications(careerOpsPath string) []model.CareerApplication {
 
 	lines := strings.Split(string(content), "\n")
 	apps := make([]model.CareerApplication, 0)
-	num := 0
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -76,9 +75,13 @@ func ParseApplications(careerOpsPath string) []model.CareerApplication {
 			continue
 		}
 
-		num++
+		trackerNumber, err := strconv.Atoi(strings.TrimSpace(fields[0]))
+		if err != nil || trackerNumber <= 0 {
+			continue
+		}
+
 		app := model.CareerApplication{
-			Number:  num,
+			Number:  trackerNumber,
 			Date:    fields[1],
 			Company: fields[2],
 			Role:    fields[3],
@@ -162,9 +165,66 @@ func ParseApplications(careerOpsPath string) []model.CareerApplication {
 
 	// Strategy 5: company name fallback from batch-input.tsv
 	enrichAppURLsByCompany(careerOpsPath, apps)
+	enrichApplicationActions(careerOpsPath, apps)
 	enrichFollowups(careerOpsPath, apps)
 
 	return apps
+}
+
+func enrichApplicationActions(careerOpsPath string, apps []model.CareerApplication) {
+	filePath := filepath.Join(careerOpsPath, "data", "application-actions.tsv")
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return
+	}
+
+	type actionRecord struct {
+		channel   string
+		applyURL  string
+		recipient string
+		status    string
+		blocker   string
+		next      string
+	}
+	records := make(map[string]actionRecord)
+	for _, line := range strings.Split(string(content), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "id\t") {
+			continue
+		}
+		fields := strings.Split(line, "\t")
+		if len(fields) < 11 {
+			continue
+		}
+		reportNumber := strings.TrimSpace(fields[2])
+		if reportNumber == "" {
+			continue
+		}
+		records[reportNumber] = actionRecord{
+			channel:   strings.TrimSpace(fields[5]),
+			applyURL:  strings.TrimSpace(fields[6]),
+			recipient: strings.TrimSpace(fields[7]),
+			status:    strings.TrimSpace(fields[8]),
+			blocker:   strings.TrimSpace(fields[9]),
+			next:      strings.TrimSpace(fields[10]),
+		}
+	}
+
+	for i := range apps {
+		record, ok := records[apps[i].ReportNumber]
+		if !ok {
+			continue
+		}
+		apps[i].ApplyChannel = record.channel
+		apps[i].ApplyURL = record.applyURL
+		apps[i].ApplyRecipient = record.recipient
+		apps[i].ApplyStatus = record.status
+		apps[i].ApplyBlocker = record.blocker
+		apps[i].ApplyNext = record.next
+		if apps[i].JobURL == "" && strings.HasPrefix(record.applyURL, "http") {
+			apps[i].JobURL = record.applyURL
+		}
+	}
 }
 
 type followupRecord struct {
@@ -260,6 +320,9 @@ func UpsertFollowupForStatusChange(careerOpsPath string, app model.CareerApplica
 	record.UpdatedAt = today
 
 	switch NormalizeStatus(newStatus) {
+	case "scheduled":
+		record.FollowupDue = ""
+		record.NextAction = "Email scheduled in Gmail; wait for confirmed delivery before starting follow-up."
 	case "applied":
 		if record.AppliedAt == "" {
 			record.AppliedAt = today
@@ -357,6 +420,8 @@ func defaultNextAction(app model.CareerApplication) string {
 	switch NormalizeStatus(app.Status) {
 	case "evaluated":
 		return "Review report, confirm red flags, then apply manually or skip."
+	case "scheduled":
+		return "Email scheduled in Gmail; wait for confirmed delivery before starting follow-up."
 	case "applied":
 		return "Wait for response; set or review follow-up date."
 	case "responded":
@@ -718,6 +783,8 @@ func NormalizeStatus(raw string) string {
 		return "offer"
 	case strings.Contains(s, "responded") || strings.Contains(s, "respondido"):
 		return "responded"
+	case strings.Contains(s, "scheduled") || s == "agendado" || s == "agendada":
+		return "scheduled"
 	case strings.Contains(s, "applied") || strings.Contains(s, "aplicado") || s == "enviada" || s == "aplicada" || s == "sent":
 		return "applied"
 	case strings.Contains(s, "rejected") || strings.Contains(s, "rechazado") || s == "rechazada":
@@ -829,15 +896,17 @@ func StatusPriority(status string) int {
 		return 2
 	case "applied":
 		return 3
-	case "evaluated":
+	case "scheduled":
 		return 4
-	case "skip":
+	case "evaluated":
 		return 5
-	case "rejected":
+	case "skip":
 		return 6
-	case "discarded":
+	case "rejected":
 		return 7
-	default:
+	case "discarded":
 		return 8
+	default:
+		return 9
 	}
 }

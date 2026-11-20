@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -240,7 +241,7 @@ func resolveCareerOpsPath(pathFlag string) string {
 
 func runPipelineAction(careerOpsPath string, action screens.PipelineToolAction) tea.Cmd {
 	return func() tea.Msg {
-		args, ok := actionCommandArgs(action.ID)
+		args, ok := actionCommandArgs(action)
 		if !ok {
 			return screens.PipelineActionFinishedMsg{
 				Action:    action,
@@ -256,6 +257,12 @@ func runPipelineAction(careerOpsPath string, action screens.PipelineToolAction) 
 		cmd.Dir = careerOpsPath
 		outputBytes, err := cmd.CombinedOutput()
 		output := summarizeCommandOutput(string(outputBytes), 12, 2600)
+		blocked := (action.ID == "create_draft" || action.ID == "prepare_application") &&
+			(strings.Contains(output, "GMAIL_DRAFT_BLOCKED:") ||
+				strings.Contains(output, "DRAFT_BLOCKED:") ||
+				strings.Contains(output, "PORTAL_APPLICATION_BLOCKED:") ||
+				strings.Contains(output, "PORTAL_APPLICATION_INACTIVE:") ||
+				strings.Contains(output, "blocked_"))
 
 		if ctx.Err() == context.DeadlineExceeded {
 			err = ctx.Err()
@@ -273,6 +280,7 @@ func runPipelineAction(careerOpsPath string, action screens.PipelineToolAction) 
 		return screens.PipelineActionFinishedMsg{
 			Action:           action,
 			Succeeded:        err == nil,
+			Blocked:          blocked,
 			Output:           output,
 			RefreshDashboard: action.Writes,
 		}
@@ -286,8 +294,18 @@ func npmExecutable() string {
 	return "npm"
 }
 
-func actionCommandArgs(actionID string) ([]string, bool) {
-	switch actionID {
+func actionCommandArgs(action screens.PipelineToolAction) ([]string, bool) {
+	switch action.ID {
+	case "create_draft":
+		if action.ApplicationID <= 0 {
+			return nil, false
+		}
+		return []string{"--silent", "run", "gmail-draft-live", "--", "--id", strconv.Itoa(action.ApplicationID)}, true
+	case "prepare_application":
+		if action.ApplicationID <= 0 {
+			return nil, false
+		}
+		return []string{"--silent", "run", "portal-prepare", "--", "--id", strconv.Itoa(action.ApplicationID)}, true
 	case "health":
 		return []string{"run", "jobfinder:health"}, true
 	case "search_pt_preview":

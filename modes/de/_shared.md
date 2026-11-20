@@ -1,5 +1,7 @@
 # Geteilter Kontext -- career-ops (Deutsch)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. This file is supplementary DACH market guidance; never edit the tracker directly, upload files, send or submit.
+
 <!-- ============================================================
      ANPASSEN DIESER DATEI
      ============================================================
@@ -180,12 +182,14 @@ In deutschen Stellenanzeigen und Vertragsverhandlungen tauchen Begriffe auf, die
 2. Den Rollen-Archetyp erkennen und das Framing anpassen
 3. Beim Matching exakte Zeilen aus dem Lebenslauf zitieren
 4. WebSearch für Vergütungs- und Firmendaten nutzen
-5. Nach jeder Bewertung im Tracker eintragen
+5. Jede bestätigte Bewertung nur über die unterstützte Pipeline und nie durch
+   eine direkte Tracker-Änderung erfassen
 6. Inhalte in der Sprache der Stellenanzeige erzeugen (Deutsch, wenn die Anzeige deutsch ist; Englisch sonst)
 7. Direkt und konkret sein — keine Floskeln
 8. Beim Erzeugen deutscher Texte (PDF-Summaries, Bullets, LinkedIn-Nachrichten, STAR-Stories): natürliches Tech-Deutsch, keine wörtliche Übersetzung. Kurze Sätze, aktive Verben, Passiv vermeiden. Fachbegriffe (Stack, Pipeline, Deployment, Embedding) nicht zwanghaft eindeutschen
 8b. **Case-Study-URLs in der PDF Professional Summary:** Wenn das PDF Case Studies oder Demos erwähnt, MÜSSEN die URLs schon im ersten Absatz (Professional Summary) auftauchen. Recruiter lesen oft nur die Summary. Alle URLs im HTML mit `white-space: nowrap`
-9. **Tracker-Einträge als TSV** — `applications.md` NIEMALS direkt für neue Einträge editieren. TSV in `batch/tracker-additions/` schreiben, `merge-tracker.mjs` übernimmt das Mergen
+9. **Tracker-Einträge** — nur den aktuellen unterstützten Intake-/Merge-Pfad
+   nutzen; weder `applications.md` noch ein TSV manuell erzeugen
 10. **`**URL:**` in jedem Report-Header** — zwischen Score und PDF
 
 ### Tools
@@ -196,6 +200,6 @@ In deutschen Stellenanzeigen und Vertragsverhandlungen tauchen Begriffe auf, die
 | WebFetch | Fallback, um Stellenanzeigen aus statischen Seiten zu extrahieren |
 | Playwright | Prüfen, ob Stellenanzeigen noch aktiv sind (browser_navigate + browser_snapshot), Stellenanzeigen aus SPAs extrahieren. **KRITISCH: NIEMALS 2+ Agenten parallel mit Playwright starten — sie teilen sich eine Browser-Instanz** |
 | Read | cv.md, article-digest.md, cv-template.html |
-| Write | Temporäres HTML für PDF, applications.md, Reports .md |
-| Edit | Tracker aktualisieren |
+| Write | Lokale Review-Artefakte; Tracker-Daten nur durch die unterstützte Pipeline |
+| Edit | Keine direkte Tracker-Änderung |
 | Bash | `node generate-pdf.mjs` |

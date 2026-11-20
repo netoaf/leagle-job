@@ -1,5 +1,7 @@
 # Mode : postuler -- Assistant live pour les formulaires de candidature
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. This file may help draft answers, but it stops before upload, send or final submission.
+
 Mode interactif pour le moment ou le candidat remplit un formulaire de candidature dans Chrome. Lit ce qui est a l'ecran, charge le contexte de l'evaluation precedente de l'offre et genere des reponses personnalisees pour chaque question du formulaire.
 
 ## Prerequis
@@ -102,9 +104,10 @@ Notes :
 ## Etape 6 -- Apres la candidature (optionnel)
 
 Si le candidat confirme que la candidature est envoyee :
-1. Mettre a jour le statut dans `applications.md` de "Evaluated" a "Applied"
-2. Mettre a jour le Bloc G du report avec les reponses finales
-3. Suggerer l'etape suivante : `/career-ops contacto` pour du LinkedIn outreach vers le hiring manager
+1. Definir le statut `Applied` via le controle du dashboard ou le workflow pris
+   en charge, jamais par une modification Markdown directe.
+2. Executer `npm run verify` et controler le suivi associe.
+3. Proposer un prochain contact humain possible sans l'envoyer.
 
 ## Gestion du defilement
 

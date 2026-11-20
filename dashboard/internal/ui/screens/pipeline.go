@@ -42,27 +42,6 @@ type PipelineUpdateStatusMsg struct {
 	NewStatus     string
 }
 
-// PipelineToolAction describes a safe local CareerOps command exposed in the dashboard.
-type PipelineToolAction struct {
-	ID          string
-	Label       string
-	Description string
-	Writes      bool
-}
-
-// PipelineRunActionMsg requests execution of a local CareerOps tool action.
-type PipelineRunActionMsg struct {
-	Action PipelineToolAction
-}
-
-// PipelineActionFinishedMsg reports the result of a local CareerOps tool action.
-type PipelineActionFinishedMsg struct {
-	Action           PipelineToolAction
-	Succeeded        bool
-	Output           string
-	RefreshDashboard bool
-}
-
 type reportSummary struct {
 	archetype string
 	tldr      string
@@ -82,6 +61,7 @@ const (
 const (
 	filterAll       = "all"
 	filterEvaluated = "evaluated"
+	filterScheduled = "scheduled"
 	filterApplied   = "applied"
 	filterInterview = "interview"
 	filterSkip      = "skip"
@@ -96,6 +76,7 @@ type pipelineTab struct {
 var pipelineTabs = []pipelineTab{
 	{filterAll, "ALL"},
 	{filterEvaluated, "EVALUATED"},
+	{filterScheduled, "SCHEDULED"},
 	{filterApplied, "APPLIED"},
 	{filterInterview, "INTERVIEW"},
 	{filterTop, "TOP >=80"},
@@ -104,25 +85,10 @@ var pipelineTabs = []pipelineTab{
 
 var sortCycle = []string{sortScore, sortDate, sortCompany, sortStatus}
 
-var statusOptions = []string{"Evaluated", "Applied", "Responded", "Interview", "Offer", "Rejected", "Discarded", "SKIP"}
-
-var toolActions = []PipelineToolAction{
-	{ID: "health", Label: "Health check", Description: "Run full Leagle Job validation."},
-	{ID: "search_pt_preview", Label: "Search PT preview", Description: "Find new Portugal-first jobs without writing."},
-	{ID: "search_pt_write", Label: "Search PT + write 5", Description: "Find new jobs and add up to 5 selected jobs to dashboard.", Writes: true},
-	{ID: "deep_preview", Label: "Deep search preview", Description: "Run the broader Portugal-first scan without writing."},
-	{ID: "remote_preview", Label: "Remote/EU preview", Description: "Search remote and Europe sources without writing."},
-	{ID: "source_audit_preview", Label: "Source audit preview", Description: "Check a sample of source health without replacing files."},
-	{ID: "source_cleanup", Label: "Source cleanup plan", Description: "Write a safe dead/blocked/fetch-failed cleanup report.", Writes: true},
-	{ID: "top10_action", Label: "Top 10 action mode", Description: "Build packs and one execution checklist for the strongest jobs.", Writes: true},
-	{ID: "cv_diff_top10", Label: "CV diff top 10", Description: "Create safe CV tailoring diffs for strongest jobs.", Writes: true},
-	{ID: "draft_quality", Label: "Draft quality gate", Description: "Validate generated application-pack email drafts."},
-	{ID: "followups", Label: "Follow-ups due", Description: "List due follow-ups and open next actions."},
-	{ID: "followups_init", Label: "Init follow-ups", Description: "Create missing follow-up rows for active applications.", Writes: true},
-}
+var statusOptions = []string{"Evaluated", "Scheduled", "Applied", "Responded", "Interview", "Offer", "Rejected", "Discarded", "SKIP"}
 
 // statusGroupOrder defines display order for grouped view.
-var statusGroupOrder = []string{"interview", "offer", "responded", "applied", "evaluated", "skip", "rejected", "discarded"}
+var statusGroupOrder = []string{"interview", "offer", "responded", "applied", "scheduled", "evaluated", "skip", "rejected", "discarded"}
 
 // PipelineModel implements the career pipeline dashboard screen.
 type PipelineModel struct {
@@ -253,7 +219,9 @@ func (m PipelineModel) Update(msg tea.Msg) (PipelineModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case PipelineActionFinishedMsg:
 		m.actionRunning = false
-		if msg.Succeeded {
+		if msg.Blocked {
+			m.actionMessage = "BLOQUEADO: " + msg.Action.Label
+		} else if msg.Succeeded {
 			m.actionMessage = "OK: " + msg.Action.Label
 		} else {
 			m.actionMessage = "FAILED: " + msg.Action.Label
@@ -355,6 +323,68 @@ func (m PipelineModel) handleKey(msg tea.KeyMsg) (PipelineModel, tea.Cmd) {
 			}
 		}
 
+	case "d":
+		if m.actionRunning {
+			m.actionMessage = "Já existe uma ação em execução"
+			return m, nil
+		}
+		if app, ok := m.CurrentApp(); ok {
+			if strings.ToLower(strings.TrimSpace(app.ApplyChannel)) != "email" {
+				m.actionMessage = "Esta vaga não usa candidatura por email"
+				m.actionOutput = applicationBlockReason(app)
+				return m, nil
+			}
+			if !strings.Contains(app.ApplyRecipient, "@") || isBlockedApplyStatus(app.ApplyStatus) {
+				m.actionMessage = "Rascunho bloqueado"
+				m.actionOutput = applicationBlockReason(app)
+				return m, nil
+			}
+			action := PipelineToolAction{
+				ID:            "create_draft",
+				Label:         "Criar rascunho no Gmail",
+				Description:   "Verificar a vaga, rever o email, anexar o CV certo e criar um rascunho Gmail nao enviado.",
+				Writes:        true,
+				ApplicationID: app.Number,
+			}
+			m.actionRunning = true
+			m.actionMessage = "A validar e criar rascunho no Gmail..."
+			m.actionOutput = ""
+			return m, func() tea.Msg {
+				return PipelineRunActionMsg{Action: action}
+			}
+		}
+
+	case "p":
+		if m.actionRunning {
+			m.actionMessage = "Já existe uma ação em execução"
+			return m, nil
+		}
+		if app, ok := m.CurrentApp(); ok {
+			if !isPortalApplyChannel(app.ApplyChannel) {
+				m.actionMessage = "Esta vaga não usa portal ou formulário"
+				m.actionOutput = applicationBlockReason(app)
+				return m, nil
+			}
+			if isBlockedApplyStatus(app.ApplyStatus) {
+				m.actionMessage = "Candidatura bloqueada"
+				m.actionOutput = applicationBlockReason(app)
+				return m, nil
+			}
+			action := PipelineToolAction{
+				ID:            "prepare_application",
+				Label:         "Preparar candidatura no portal",
+				Description:   "Verificar a vaga, preencher apenas dados confirmados, indicar o CV certo e parar antes do anexo/submissão humanos.",
+				Writes:        true,
+				ApplicationID: app.Number,
+			}
+			m.actionRunning = true
+			m.actionMessage = "A validar e preparar a candidatura..."
+			m.actionOutput = ""
+			return m, func() tea.Msg {
+				return PipelineRunActionMsg{Action: action}
+			}
+		}
+
 	case "c":
 		if len(m.filtered) > 0 {
 			m.statusPicker = true
@@ -382,48 +412,6 @@ func (m PipelineModel) handleKey(msg tea.KeyMsg) (PipelineModel, tea.Cmd) {
 		return m, nil
 	}
 
-	return m, nil
-}
-
-func (m PipelineModel) handleActionPicker(msg tea.KeyMsg) (PipelineModel, tea.Cmd) {
-	switch msg.String() {
-	case "esc", "q":
-		m.actionPicker = false
-		m.actionConfirm = false
-		return m, nil
-
-	case "down":
-		m.actionCursor++
-		if m.actionCursor >= len(toolActions) {
-			m.actionCursor = len(toolActions) - 1
-		}
-		m.actionConfirm = false
-
-	case "up":
-		m.actionCursor--
-		if m.actionCursor < 0 {
-			m.actionCursor = 0
-		}
-		m.actionConfirm = false
-
-	case "enter":
-		if m.actionCursor < 0 || m.actionCursor >= len(toolActions) {
-			return m, nil
-		}
-		action := toolActions[m.actionCursor]
-		if action.Writes && !m.actionConfirm {
-			m.actionConfirm = true
-			return m, nil
-		}
-		m.actionPicker = false
-		m.actionConfirm = false
-		m.actionRunning = true
-		m.actionMessage = "Running: " + action.Label
-		m.actionOutput = ""
-		return m, func() tea.Msg {
-			return PipelineRunActionMsg{Action: action}
-		}
-	}
 	return m, nil
 }
 
@@ -737,17 +725,15 @@ func (m PipelineModel) renderSortBar() string {
 		Width(m.width).
 		Padding(0, 2)
 
-	sortLabel := fmt.Sprintf("[Sort: %s]", m.sortMode)
-	viewLabel := fmt.Sprintf("[View: %s]", m.viewMode)
-	count := fmt.Sprintf("%d shown", len(m.filtered))
+	count := fmt.Sprintf("%d vagas · ordenadas por relevância", len(m.filtered))
 	toolLabel := ""
 	if m.actionRunning {
-		toolLabel = "  [Tool: running]"
+		toolLabel = "  ·  a processar..."
 	} else if m.actionMessage != "" {
-		toolLabel = "  [Tool: " + ellipsize(m.actionMessage, 40) + "]"
+		toolLabel = "  ·  " + ellipsize(m.actionMessage, 52)
 	}
 
-	return style.Render(fmt.Sprintf("%s  %s  %s%s", sortLabel, viewLabel, count, toolLabel))
+	return style.Render(count + toolLabel)
 }
 
 func (m PipelineModel) renderBody() string {
@@ -905,9 +891,25 @@ func (m PipelineModel) renderPreview() string {
 	if app.NextAction != "" {
 		lines = append(lines, m.previewRows(padStyle, labelStyle, valueStyle, "Next", app.NextAction, contentW)...)
 	}
+	if app.ApplyChannel != "" {
+		lines = append(lines, m.previewRows(padStyle, labelStyle, valueStyle, "Candidatura", applicationMethodLabel(app), contentW)...)
+	}
+	if app.ApplyBlocker != "" && app.ApplyBlocker != "sem blocker operacional obvio; rever pack antes de aplicar" {
+		lines = append(lines, m.previewRows(padStyle, labelStyle, dimStyle, "Bloqueio", app.ApplyBlocker, contentW)...)
+	}
 	if app.FollowupNotes != "" {
 		lines = append(lines, m.previewRows(padStyle, labelStyle, dimStyle, "Follow-up notes", app.FollowupNotes, contentW)...)
 	}
+
+	button, description, enabled := applicationButton(app)
+	buttonStyle := lipgloss.NewStyle().Bold(true).Foreground(m.theme.Base).Background(m.theme.Green).Padding(0, 2)
+	if !enabled || m.actionRunning {
+		buttonStyle = buttonStyle.Foreground(m.theme.Subtext).Background(m.theme.Overlay)
+	}
+	if m.actionRunning {
+		button = "[ ... ] A PROCESSAR"
+	}
+	lines = append(lines, padStyle.Render(buttonStyle.Render(button)), padStyle.Render(dimStyle.Render(description)))
 
 	if m.actionMessage != "" || m.actionOutput != "" {
 		lines = append(lines, padStyle.Render(divider.Render(strings.Repeat("-", m.width-4))))
@@ -986,62 +988,16 @@ func (m PipelineModel) renderHelp() string {
 				keyStyle.Render("Esc") + descStyle.Render(" cancel"))
 	}
 
-	brand := lipgloss.NewStyle().Foreground(m.theme.Overlay).Render("Leagle Job · based on Career-Ops")
+	actionKey, actionDescription := m.currentApplicationHelp()
+	keys := keyStyle.Render("↑↓") + descStyle.Render(" vagas   ") +
+		keyStyle.Render("←→") + descStyle.Render(" listas   ") +
+		keyStyle.Render("Enter") + descStyle.Render(" detalhes   ") +
+		keyStyle.Render(actionKey) + descStyle.Render(" "+actionDescription+"   ") +
+		keyStyle.Render("O") + descStyle.Render(" abrir vaga   ") +
+		keyStyle.Render("C") + descStyle.Render(" estado   ") +
+		keyStyle.Render("Esc") + descStyle.Render(" sair")
 
-	keys := keyStyle.Render("up/down") + descStyle.Render(" nav  ") +
-		keyStyle.Render("left/right") + descStyle.Render(" tabs  ") +
-		keyStyle.Render("s") + descStyle.Render(" sort  ") +
-		keyStyle.Render("r") + descStyle.Render(" refresh  ") +
-		keyStyle.Render("a") + descStyle.Render(" actions  ") +
-		keyStyle.Render("Enter") + descStyle.Render(" report  ") +
-		keyStyle.Render("o") + descStyle.Render(" open URL  ") +
-		keyStyle.Render("c") + descStyle.Render(" change  ") +
-		keyStyle.Render("v") + descStyle.Render(" view  ") +
-		keyStyle.Render("Esc") + descStyle.Render(" quit")
-
-	gap := m.width - lipgloss.Width(keys) - lipgloss.Width(brand) - 2
-	if gap < 1 {
-		gap = 1
-	}
-
-	return style.Render(keys + strings.Repeat(" ", gap) + brand)
-}
-
-func (m PipelineModel) overlayActionPicker(body string) string {
-	bodyLines := strings.Split(body, "\n")
-
-	pickerWidth := min(max(56, m.width-8), 100)
-	padStyle := lipgloss.NewStyle().Padding(0, 2)
-	borderStyle := lipgloss.NewStyle().
-		Foreground(m.theme.Blue).
-		Bold(true)
-	warnStyle := lipgloss.NewStyle().Foreground(m.theme.Yellow)
-	dimStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext)
-
-	var picker []string
-	picker = append(picker, padStyle.Render(borderStyle.Render("Leagle Job actions")))
-	for i, action := range toolActions {
-		prefix := "  "
-		style := lipgloss.NewStyle().Foreground(m.theme.Text).Width(pickerWidth)
-		if i == m.actionCursor {
-			prefix = "> "
-			style = style.Background(m.theme.Overlay).Bold(true)
-		}
-		writeTag := ""
-		if action.Writes {
-			writeTag = " [writes]"
-		}
-		label := fmt.Sprintf("%s%s%s - %s", prefix, action.Label, writeTag, action.Description)
-		picker = append(picker, padStyle.Render(style.Render(ellipsize(label, pickerWidth))))
-	}
-	if m.actionConfirm {
-		picker = append(picker, padStyle.Render(warnStyle.Render("This action writes files. Press Enter again to run.")))
-	} else {
-		picker = append(picker, padStyle.Render(dimStyle.Render("Preview actions do not write dashboard entries.")))
-	}
-
-	bodyLines = append(bodyLines, picker...)
-	return strings.Join(bodyLines, "\n")
+	return style.Render(keys)
 }
 
 func (m PipelineModel) overlayStatusPicker(body string) string {
@@ -1094,6 +1050,7 @@ func (m PipelineModel) statusColorMap() map[string]lipgloss.Color {
 		"interview": m.theme.Green,
 		"offer":     m.theme.Green,
 		"applied":   m.theme.Sky,
+		"scheduled": m.theme.Yellow,
 		"responded": m.theme.Blue,
 		"evaluated": m.theme.Text,
 		"skip":      m.theme.Red,
@@ -1122,6 +1079,8 @@ func statusLabel(norm string) string {
 		return "Responded"
 	case "applied":
 		return "Applied"
+	case "scheduled":
+		return "Scheduled"
 	case "evaluated":
 		return "Evaluated"
 	case "skip":

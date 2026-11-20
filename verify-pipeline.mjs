@@ -26,18 +26,21 @@ const APPS_FILE = existsSync(join(CAREER_OPS, 'data/applications.md'))
 const ADDITIONS_DIR = join(CAREER_OPS, 'batch/tracker-additions');
 const REPORTS_DIR = join(CAREER_OPS, 'reports');
 const JOB_INDEX_FILE = join(CAREER_OPS, 'data/job-index.jsonl');
+const ACTIONS_FILE = join(CAREER_OPS, 'data/application-actions.tsv');
+const EMAIL_LEDGER_FILE = join(CAREER_OPS, 'data/email-drafts.tsv');
 const STATES_FILE = existsSync(join(CAREER_OPS, 'templates/states.yml'))
   ? join(CAREER_OPS, 'templates/states.yml')
   : join(CAREER_OPS, 'states.yml');
 
 const CANONICAL_STATUSES = [
-  'evaluated', 'applied', 'responded', 'interview',
+  'evaluated', 'scheduled', 'applied', 'responded', 'interview',
   'offer', 'rejected', 'discarded', 'skip',
 ];
 
 const ALIASES = {
   'evaluada': 'evaluated', 'condicional': 'evaluated', 'hold': 'evaluated', 'evaluar': 'evaluated', 'verificar': 'evaluated',
   'aplicado': 'applied', 'enviada': 'applied', 'aplicada': 'applied', 'applied': 'applied', 'sent': 'applied',
+  'agendado': 'scheduled', 'agendada': 'scheduled',
   'respondido': 'responded',
   'entrevista': 'interview',
   'oferta': 'offer',
@@ -77,6 +80,11 @@ function isValidScore(raw) {
   }
 
   return false;
+}
+
+function extractLinkedInJobId(notes = '') {
+  const match = notes.match(/\[linkedin-job-id:(\d+)\]/i);
+  return match ? match[1] : null;
 }
 
 // --- Read applications.md ---
@@ -134,8 +142,10 @@ if (badStatuses === 0) ok('All statuses are canonical');
 const companyRoleMap = new Map();
 let dupes = 0;
 for (const e of entries) {
+  const linkedInJobId = extractLinkedInJobId(e.notes);
   const key = e.company.toLowerCase().replace(/[^a-z0-9]/g, '') + '::' +
-    e.role.toLowerCase().replace(/[^a-z0-9 ]/g, '');
+    e.role.toLowerCase().replace(/[^a-z0-9 ]/g, '') +
+    (linkedInJobId ? `::linkedin:${linkedInJobId}` : '');
   if (!companyRoleMap.has(key)) companyRoleMap.set(key, []);
   companyRoleMap.get(key).push(e);
 }
@@ -237,6 +247,38 @@ if (existsSync(JOB_INDEX_FILE)) {
 } else {
   ok('Job index not created yet');
 }
+
+// --- Check 9: Tracker/action/email reconciliation ---
+let stateMismatches = 0;
+const entriesById = new Map(entries.map((entry) => [String(entry.num), entry]));
+if (existsSync(ACTIONS_FILE)) {
+  const actionRows = readFileSync(ACTIONS_FILE, 'utf-8').split(/\r?\n/).slice(1).filter(Boolean);
+  for (const row of actionRows) {
+    const fields = row.split('\t');
+    const applicationId = String(Number(fields[1] || 0));
+    const actionStatus = fields[8] || '';
+    const application = entriesById.get(applicationId);
+    if (application?.status.toLowerCase() === 'applied' && actionStatus.startsWith('ready_')) {
+      error(`#${applicationId}: Applied application still has ready action "${actionStatus}"`);
+      stateMismatches++;
+    }
+  }
+}
+
+const emailApplicationIds = new Set();
+if (existsSync(EMAIL_LEDGER_FILE)) {
+  for (const row of readFileSync(EMAIL_LEDGER_FILE, 'utf-8').split(/\r?\n/).slice(1).filter(Boolean)) {
+    const fields = row.split('\t');
+    if (fields[1]) emailApplicationIds.add(String(Number(fields[1])));
+  }
+}
+for (const application of entries) {
+  if (application.status.toLowerCase() === 'scheduled' && !emailApplicationIds.has(String(application.num))) {
+    error(`#${application.num}: Scheduled application missing from email ledger`);
+    stateMismatches++;
+  }
+}
+if (stateMismatches === 0) ok('Tracker, actions and email ledger reconciled');
 
 // --- Summary ---
 console.log('\n' + '='.repeat(50));

@@ -1,5 +1,7 @@
 # Contexto Compartilhado -- career-ops (Portugues BR)
 
+> **CANONICAL-OPERATIONAL-CONTRACT:** `modes/_shared.md` governs every operational action, score, tracker change and safety boundary. Este ficheiro complementa o contexto de mercado; nunca editar o tracker diretamente, fazer upload, enviar ou submeter.
+
 <!-- ============================================================
      THIS FILE IS AUTO-UPDATABLE. Don't put personal data here.
 
@@ -201,12 +203,14 @@ Em vagas e negociacoes brasileiras, existem termos e praticas que nao aparecem n
 2. Detectar o arquetipo da vaga e adaptar o framing conforme `_profile.md`
 3. Ao fazer matching, citar linhas exatas do curriculo
 4. Usar WebSearch para dados de remuneracao e empresa
-5. Registrar no tracker apos cada avaliacao
+5. Registar cada avaliacao confirmada apenas pela pipeline suportada, nunca por
+   edicao direta do tracker
 6. Gerar conteudo na lingua da descricao da vaga (PT-BR padrao)
 7. Ser direto e pratico — sem enrolacao
 8. Ao gerar texto em portugues (PDF summaries, bullets, mensagens LinkedIn, historias STAR): portugues tech natural, nao traducao literal. Frases curtas, verbos de acao, evitar voz passiva. Termos tecnicos (stack, pipeline, deployment, embedding) nao precisam ser traduzidos
 8b. **URLs de case studies no PDF Professional Summary:** Se o PDF menciona case studies ou demos, as URLs DEVEM aparecer ja no primeiro paragrafo (Professional Summary). Recrutadores frequentemente so leem o resumo. Todos os URLs no HTML com `white-space: nowrap`
-9. **Entradas no tracker como TSV** — NUNCA editar `applications.md` diretamente para novos registros. Escrever TSV em `batch/tracker-additions/`, `merge-tracker.mjs` cuida do merge
+9. **Entradas no tracker** — usar apenas o caminho atual de intake/merge;
+   nunca criar manualmente `applications.md` nem um TSV
 10. **Incluir `**URL:**` em todo header de report** — entre Score e PDF
 
 ### Tools
@@ -217,6 +221,6 @@ Em vagas e negociacoes brasileiras, existem termos e praticas que nao aparecem n
 | WebFetch | Fallback para extrair descricoes de vagas de paginas estaticas |
 | Playwright | Verificar se vagas ainda estao ativas (browser_navigate + browser_snapshot), extrair descricoes de SPAs. **CRITICO: NUNCA iniciar 2+ agentes com Playwright em paralelo — eles compartilham a mesma instancia do navegador** |
 | Read | cv.md, _profile.md, article-digest.md, cv-template.html |
-| Write | HTML temporario para PDF, applications.md, reports .md |
-| Edit | Atualizar tracker |
+| Write | Artefactos locais de revisao; dados do tracker apenas pela pipeline suportada |
+| Edit | Nenhuma edicao direta do tracker |
 | Bash | `node generate-pdf.mjs` |

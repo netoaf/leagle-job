@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { mkdirSync, writeFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { writeFileAtomic } from './lib/atomic-file.mjs';
 import { loadYamlFile } from './lib/config-loader.mjs';
 import { normalizeText, normalizeWhitespace } from './lib/job-normalizer.mjs';
 import {
@@ -19,6 +19,9 @@ const DEFAULT_CONCURRENCY = 4;
 const MAX_CONCURRENCY = 8;
 const CANONICAL_SOURCE_HEALTH_PATH = join('data', 'source-health.tsv');
 const PREVIEW_SOURCE_HEALTH_PATH = join('reports', 'source-health-preview.tsv');
+const MIN_ENVIRONMENT_CHECKS = 20;
+const ENVIRONMENT_FAILURE_RATIO = 0.8;
+const NETWORK_ENVIRONMENT_ERROR = /\b(?:EACCES|EPERM|ENETUNREACH|EHOSTUNREACH|ENETDOWN|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|ETIMEDOUT|DNS_RESOLUTION_FAILED|REQUEST_TIMEOUT)\b|hostname resolution failed|network is unreachable|request timed out/i;
 const PORTUGAL_PRIORITY_COMPANIES = new Set([
   'outsystems',
   'feedzai',
@@ -65,13 +68,22 @@ export async function runPortalAudit(options = {}) {
     concurrency,
     partial,
     summary: summarizeRows(rows),
+    environment: classifyAuditEnvironment(rows),
     rows,
   };
 
   if (options.write !== false) {
-    const outputPath = sourceHealthOutputPath(options, partial);
+    let outputPath = sourceHealthOutputPath(options, partial);
+    if (
+      result.environment.status === 'environment_failure'
+      && isCanonicalSourceHealthPath(root, outputPath)
+    ) {
+      result.canonical_write_blocked = true;
+      result.blocked_output_path = resolve(root, CANONICAL_SOURCE_HEALTH_PATH);
+      outputPath = PREVIEW_SOURCE_HEALTH_PATH;
+    }
     result.output_path = writeSourceHealth(root, rows, outputPath);
-    result.output_kind = outputPath === CANONICAL_SOURCE_HEALTH_PATH ? 'canonical' : 'preview';
+    result.output_kind = isCanonicalSourceHealthPath(root, outputPath) ? 'canonical' : 'preview';
   }
 
   return result;
@@ -130,7 +142,11 @@ async function auditCompany(company, checkedAt, options) {
   if (!enabled && !options.includeDisabled) return base;
 
   try {
-    const response = await fetchSource(base.checked_url, Number(options.timeoutMs || DEFAULT_TIMEOUT_MS));
+    const fetchSourceForAudit = options.fetchSource || fetchSource;
+    const response = await fetchSourceForAudit(
+      base.checked_url,
+      Number(options.timeoutMs || DEFAULT_TIMEOUT_MS),
+    );
     const detection = detectSourceAdapter({
       url,
       finalUrl: response.finalUrl,
@@ -265,7 +281,6 @@ function writeSourceHealth(root, rows, outputPath) {
     ? resolve(root, outputPath)
     : join(root, 'data', 'source-health.tsv');
 
-  mkdirSync(dirname(file), { recursive: true });
   const header = [
     'company',
     'group',
@@ -297,8 +312,32 @@ function writeSourceHealth(root, rows, outputPath) {
     row.next_action,
   ].map(tsvCell).join('\t'));
 
-  writeFileSync(file, `${header}\n${body.join('\n')}\n`, 'utf-8');
+  writeFileAtomic(file, `${header}\n${body.join('\n')}\n`);
   return file;
+}
+
+export function classifyAuditEnvironment(rows = []) {
+  const total = rows.length;
+  const networkFailures = rows.filter(isEnvironmentNetworkFailure).length;
+  const networkFailureRatio = total === 0 ? 0 : networkFailures / total;
+  const environmentFailure = total >= MIN_ENVIRONMENT_CHECKS
+    && networkFailureRatio >= ENVIRONMENT_FAILURE_RATIO;
+  const percentage = (networkFailureRatio * 100).toFixed(1);
+
+  return {
+    status: environmentFailure ? 'environment_failure' : 'usable',
+    network_failure_ratio: networkFailureRatio,
+    reason: environmentFailure
+      ? `${networkFailures}/${total} checks failed with environment-level network errors (${percentage}%)`
+      : `${networkFailures}/${total} checks had environment-level network errors (${percentage}%)`,
+  };
+}
+
+function isEnvironmentNetworkFailure(row) {
+  if (row?.status !== 'fetch_failed') return false;
+  if (/^[1-5]\d{2}$/.test(String(row?.http_code || '').trim())) return false;
+  const evidence = `${row?.error_code || ''} ${row?.error || ''}`;
+  return NETWORK_ENVIRONMENT_ERROR.test(evidence);
 }
 
 function summarizeRows(rows) {
@@ -312,6 +351,12 @@ function summarizeRows(rows) {
 function printAuditResult(result) {
   console.log(`\nPortal audit complete: ${result.total_sources}/${result.total_configured_sources} source(s) checked.`);
   console.log(`Concurrency: ${result.concurrency}`);
+  if (result.environment.status === 'environment_failure') {
+    console.log(`Environment failure: ${result.environment.reason}.`);
+  }
+  if (result.canonical_write_blocked) {
+    console.log('Canonical source health was preserved; failed-environment evidence was written only as a preview.');
+  }
   if (result.partial && result.output_path && result.output_kind !== 'canonical') {
     console.log('Partial audit detected: canonical data/source-health.tsv was not overwritten.');
   }
@@ -423,6 +468,13 @@ function sourceHealthOutputPath(options, partial) {
   return CANONICAL_SOURCE_HEALTH_PATH;
 }
 
+function isCanonicalSourceHealthPath(root, outputPath) {
+  const candidate = resolve(root, outputPath);
+  const canonical = resolve(root, CANONICAL_SOURCE_HEALTH_PATH);
+  if (process.platform === 'win32') return candidate.toLowerCase() === canonical.toLowerCase();
+  return candidate === canonical;
+}
+
 function normalizedConcurrency(value) {
   const parsed = Number(value || DEFAULT_CONCURRENCY);
   if (!Number.isFinite(parsed)) return DEFAULT_CONCURRENCY;
@@ -441,7 +493,10 @@ function tsvCell(value) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const options = parseArgs(process.argv.slice(2));
   runPortalAudit(options)
-    .then(printAuditResult)
+    .then((result) => {
+      printAuditResult(result);
+      if (result.environment.status === 'environment_failure') process.exitCode = 1;
+    })
     .catch((error) => {
       console.error(error.stack || error.message);
       process.exit(1);

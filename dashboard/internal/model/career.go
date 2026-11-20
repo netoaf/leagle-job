@@ -21,6 +21,12 @@ type CareerApplication struct {
 	ContactName    string
 	NextAction     string
 	FollowupNotes  string
+	ApplyChannel   string
+	ApplyURL       string
+	ApplyRecipient string
+	ApplyStatus    string
+	ApplyBlocker   string
+	ApplyNext      string
 	// Enrichment (lazy loaded from report)
 	Archetype    string
 	TlDr         string

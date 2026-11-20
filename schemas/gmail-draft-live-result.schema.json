@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "status": { "type": "string", "enum": ["created", "blocked"] },
+    "email_draft_id": { "type": "string" },
+    "source_hash": { "type": "string" },
+    "gmail_draft_id": { "type": "string" },
+    "gmail_message_id": { "type": "string" },
+    "gmail_thread_id": { "type": "string" },
+    "web_url": { "type": "string" },
+    "created_at": { "type": "string" },
+    "error": { "type": "string" }
+  },
+  "required": ["status", "email_draft_id", "source_hash", "gmail_draft_id", "gmail_message_id", "gmail_thread_id", "web_url", "created_at", "error"],
+  "additionalProperties": false
+}

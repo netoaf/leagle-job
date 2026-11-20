@@ -35,6 +35,58 @@ Este comando agrega:
 
 Se este comando falhar, corrigir antes de procurar vagas novas.
 
+## Saude, memoria de execucao e cobertura do mercado
+
+Estes sao tres sinais diferentes:
+
+- **Saude das fontes** indica se a URL/configuracao de uma fonte publica
+  respondeu recentemente. Nao prova que existam vagas relevantes.
+- **Memoria de execucao** indica o que aconteceu em scans reais comparaveis:
+  falha da fonte, zero aquisicao, falha de captura, vagas sem fit ou resultado
+  saudavel. Tres falhas seguidas geram alerta alto; tres aquisicoes vazias
+  geram aviso medio, sem chamar a fonte de avariada.
+- **Cobertura** indica quantas URLs qualificadas foram realmente capturadas
+  nos ultimos sete dias para LinkedIn, Indeed, IEFP, ITJobs e Net-Empregos.
+  Uma fonte saudavel nao aumenta esta contagem por si so.
+
+Antes de tratar uma pesquisa como atual, ou antes de escrever vagas novas no
+dashboard, atualizar e rever ambos os sinais:
+
+```powershell
+npm.cmd run portals:audit
+npm.cmd run sources:status
+npm.cmd run coverage:audit
+```
+
+Se a cobertura estiver `DEGRADED`, continua a ser seguro fazer uma pesquisa em
+modo preview, mas nao afirmes que o mercado esta coberto. Para uma URL publica
+que viste manualmente, usa o unico fluxo de captura/revisao existente:
+
+```powershell
+npm.cmd run evaluate-url:write -- --url "https://exemplo.pt/vaga"
+```
+
+Nao substituir este passo por login automatico, scraping autenticado ou uma
+candidatura. A URL deve ser publica, recente e revista antes de qualquer acao.
+
+## Analise de segredos
+
+Antes de partilhar uma branch ou criar um pacote, executar:
+
+```powershell
+npm.cmd run security:scan
+```
+
+O comando analisa todo o historico Git, redige os valores encontrados e falha
+se detetar um segredo. Nao le nem envia dados externos. O executavel local em
+`tools/gitleaks/` nao entra no Git nem no pacote; em Windows pode ser criado
+com o Go bundled:
+
+```powershell
+$env:GOBIN = "$PWD\tools\gitleaks"
+.\tools\go\bin\go.exe install github.com/zricethezav/gitleaks/v8@v8.30.1
+```
+
 ## Daily Workflow
 
 1. Confirmar saude:
@@ -43,25 +95,35 @@ Se este comando falhar, corrigir antes de procurar vagas novas.
 npm.cmd run jobfinder:health
 ```
 
-2. Procurar vagas novas Portugal-first sem escrever:
+2. Atualizar saude das fontes e confirmar a cobertura, pelo menos uma vez por
+   semana e sempre antes de uma escrita importante:
+
+```powershell
+npm.cmd run portals:audit
+npm.cmd run sources:status
+npm.cmd run coverage:audit
+```
+
+3. Procurar vagas novas Portugal-first sem escrever:
 
 ```powershell
 npm.cmd run jobfinder:new:dry-run -- --limit 80
 ```
 
-3. Se houver vagas boas, escrever poucas de cada vez:
+4. Se houver vagas boas e os sinais anteriores forem conhecidos, escrever
+   poucas de cada vez:
 
 ```powershell
 npm.cmd run jobfinder:new -- --limit 80 --write-limit 5
 ```
 
-4. Validar dashboard:
+5. Validar dashboard:
 
 ```powershell
 npm.cmd run verify
 ```
 
-5. Abrir o dashboard:
+6. Abrir o dashboard:
 
 ```powershell
 .\dashboard\career-dashboard-live.exe
@@ -135,6 +197,18 @@ data/source-health.tsv
 docs/source-health.md
 ```
 
+Rever a memoria persistente dos scans canonicos:
+
+```powershell
+npm.cmd run sources:status
+```
+
+O ficheiro local e `data/source-runs.tsv`. `jobfinder:*:dry-run`, re-ranking de
+snapshots e avaliacao de candidatos fornecidos nao o alteram. Um alerta `HIGH`
+significa tres falhas comparaveis; um `MEDIUM` de aquisicao vazia pode apenas
+significar que nao existem vagas atuais para os filtros usados. Confirmar com
+`portals:audit` e com a pagina oficial antes de alterar ou desativar uma fonte.
+
 Prioridade de correcao:
 
 1. fontes high-value com URL morto;
@@ -148,12 +222,17 @@ Atalhos principais:
 
 - setas: navegar;
 - `Enter`: abrir report;
-- `o`: abrir URL;
-- `c`: mudar estado;
-- `r`: refresh;
-- `a`: abrir acoes da ferramenta;
-- `v`: alternar vista;
+- `D`: executar o preflight Gmail da vaga selecionada; só pode criar um
+  rascunho Gmail não enviado quando a integração estiver explicitamente
+  configurada e todos os gates passarem;
+- `O`: abrir a vaga;
+- `C`: mudar estado;
+- setas esquerda/direita: mudar separador;
 - `Esc`: voltar/sair.
+
+O dashboard mostra apenas estas teclas de uso diario. Acoes de manutencao e
+diagnostico continuam disponiveis pelos comandos documentados, sem poluir a
+interface principal.
 
 Acoes disponiveis no dashboard:
 
@@ -218,8 +297,13 @@ npm.cmd run email-drafts -- --top 3
 ```
 
 Estes comandos escrevem apenas em `data/email-drafts.tsv` e
-`output/email-drafts-local/`. Nao criam drafts reais no Gmail, nao enviam email
-e nao anexam/uploadam CV.
+`output/email-drafts-local/`. Não criam drafts reais no Gmail, não enviam email
+e não anexam/uploadam CV.
+
+O passo opcional `npm run gmail-draft-live -- --id <id>` só é válido quando o
+Gmail foi configurado explicitamente. Requer destinatário, CV selecionado,
+verificação Playwright fresca e review Codex; pode criar um rascunho **não
+enviado** e nunca envia a mensagem. Ver [gmail-adapter.md](gmail-adapter.md).
 
 Checklist por vaga:
 

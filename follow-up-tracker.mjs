@@ -6,7 +6,26 @@ import { fileURLToPath } from 'url';
 import { isClosedStatus, loadApplications } from './lib/applications-store.mjs';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
-const HEADER = 'id\treport_number\tcompany\trole\tapplied_at\tlast_contact\tfollowup_due\tcontact_channel\tcontact_name\tnext_action\tnotes\tupdated_at';
+export const FOLLOWUPS_HEADER = [
+  'id',
+  'report_number',
+  'company',
+  'role',
+  'applied_at',
+  'last_contact',
+  'followup_due',
+  'contact_channel',
+  'contact_name',
+  'next_action',
+  'notes',
+  'updated_at',
+  'gmail_thread_id',
+  'last_message_id',
+  'followup_draft_id',
+  'response_state',
+  'recommendation',
+  'synced_at',
+].join('\t');
 
 export function runFollowupTracker(options = {}) {
   const root = options.projectRoot || projectRoot;
@@ -31,6 +50,12 @@ export function runFollowupTracker(options = {}) {
         next_action: defaultNextAction(app.status),
         notes: '',
         updated_at: todayISO(),
+        gmail_thread_id: '',
+        last_message_id: '',
+        followup_draft_id: '',
+        response_state: '',
+        recommendation: '',
+        synced_at: '',
       });
     }
     writeFollowups(root, records);
@@ -58,14 +83,14 @@ export function runFollowupTracker(options = {}) {
   };
 }
 
-function loadFollowups(root) {
+export function loadFollowups(root) {
   const file = followupFile(root);
   const records = new Map();
   if (!existsSync(file)) return records;
   for (const line of readFileSync(file, 'utf-8').split('\n')) {
     if (!line.trim() || line.startsWith('id\t')) continue;
     const fields = line.split('\t');
-    while (fields.length < 12) fields.push('');
+    while (fields.length < 18) fields.push('');
     const record = {
       id: fields[0],
       report_number: fields[1],
@@ -79,13 +104,19 @@ function loadFollowups(root) {
       next_action: fields[9],
       notes: fields[10],
       updated_at: fields[11],
+      gmail_thread_id: fields[12],
+      last_message_id: fields[13],
+      followup_draft_id: fields[14],
+      response_state: fields[15],
+      recommendation: fields[16],
+      synced_at: fields[17],
     };
     records.set(record.report_number || record.id, record);
   }
   return records;
 }
 
-function writeFollowups(root, records) {
+export function writeFollowups(root, records) {
   const file = followupFile(root);
   mkdirSync(dirname(file), { recursive: true });
   const rows = [...records.values()]
@@ -103,8 +134,14 @@ function writeFollowups(root, records) {
       record.next_action,
       record.notes,
       record.updated_at,
+      record.gmail_thread_id,
+      record.last_message_id,
+      record.followup_draft_id,
+      record.response_state,
+      record.recommendation,
+      record.synced_at,
     ].map(tsvCell).join('\t'));
-  writeFileSync(file, `${HEADER}\n${rows.join('\n')}${rows.length ? '\n' : ''}`, 'utf-8');
+  writeFileSync(file, `${FOLLOWUPS_HEADER}\n${rows.join('\n')}${rows.length ? '\n' : ''}`, 'utf-8');
 }
 
 function followupFile(root) {
@@ -120,7 +157,7 @@ function isDue(value) {
   return value <= todayISO();
 }
 
-function defaultNextAction(status) {
+export function defaultNextAction(status) {
   const text = normalize(status);
   if (text.includes('applied')) return 'Follow up if there is no response by the due date.';
   if (text.includes('responded')) return 'Reply or clarify next step.';
